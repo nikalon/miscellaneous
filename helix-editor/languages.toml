@@ -1,0 +1,7 @@
+[[language]]
+name = "rust"
+auto-format = false
+
+[language.language-server]
+command = "rustup"
+args = ["run", "stable", "rust-analyzer"]

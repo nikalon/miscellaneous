@@ -1,0 +1,14 @@
+theme = "ayu_dark"
+
+[editor]
+bufferline = "always"
+line-number = "relative"
+
+[editor.cursor-shape]
+insert = "bar"
+
+[editor.statusline]
+right = ["diagnostics", "selections", "position", "position-percentage", "file-encoding", "spacer"]
+
+[keys.normal]
+esc = ["collapse_selection", "keep_primary_selection"]
