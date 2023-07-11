@@ -10,7 +10,7 @@ To configure Neovim follow these steps:
 
 1. Copy all contents of this directory into the runtime path.
 - `$XDG_CONFIG_HOME/nvim` in Linux
-- `%LOCALAPPDATA%\Local\nvim` in Windows
+- `%LOCALAPPDATA%\nvim` in Windows
 
 2. Install [packer](https://github.com/wbthomason/packer.nvim#requirements). This is the package manager for plugins.
 3. Start Neovim and open the file `<RUNTIMEPATH>/lua/miguel/packer.lua`. Never mind any errors that you see for now.
