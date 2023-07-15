@@ -2,7 +2,7 @@
 This directory contains custom configuration files for Neovim.
 
 ## Requirements
-- Neovim > 0.8
+- Neovim > 0.9.0
 - Git
 
 ## Configuring

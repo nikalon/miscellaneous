@@ -6,6 +6,8 @@ vim.opt.scrolloff = 5
 vim.opt.colorcolumn = "120"
 vim.opt.linebreak = false
 vim.opt.title = true
+vim.opt.ignorecase = true
+vim.opt.clipboard = "unnamedplus" -- Temporary hack until I learn how to copy & paste properly
 
 -- Line number
 vim.opt.nu = true
