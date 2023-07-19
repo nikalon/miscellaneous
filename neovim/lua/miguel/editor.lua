@@ -8,6 +8,7 @@ vim.opt.linebreak = false
 vim.opt.title = true
 vim.opt.ignorecase = true
 vim.opt.clipboard = "unnamedplus" -- Temporary hack until I learn how to copy & paste properly
+vim.opt.wrap = false
 
 -- Line number
 vim.opt.nu = true
