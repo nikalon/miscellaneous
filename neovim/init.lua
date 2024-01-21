@@ -154,7 +154,7 @@ require('lazy').setup({
     },
   },
 
-  {
+  --[[ {
     -- Add indentation guides even on blank lines
     'lukas-reineke/indent-blankline.nvim',
     -- Enable `lukas-reineke/indent-blankline.nvim`
@@ -163,7 +163,7 @@ require('lazy').setup({
       char = '┊',
       show_trailing_blankline_indent = false,
     },
-  },
+  }, ]]--
 
   -- "gc" to comment visual regions/lines
   { 'numToStr/Comment.nvim', opts = {} },
@@ -211,9 +211,8 @@ require('lazy').setup({
   -- { import = 'custom.plugins' },
 }, {})
 
--- [[ Setting options ]]
--- See `:help vim.o`
--- NOTE: You can change these options as you wish!
+
+-- [[ Neovim configuration ]]
 
 -- Set highlight on search
 vim.o.hlsearch = false
@@ -290,6 +289,14 @@ vim.api.nvim_create_autocmd('TextYankPost', {
   group = highlight_group,
   pattern = '*',
 })
+
+
+-- [[ Configure theme ]]
+require('onedark').setup {
+    style = 'darker'
+}
+require('onedark').load()
+vim.o.guifont = "Consolas:h12"
 
 -- [[ Configure Telescope ]]
 -- See `:help telescope` and `:help telescope.setup()`
