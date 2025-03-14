@@ -48,52 +48,39 @@ typedef double f64;
 #define MAX(a, b) (a > b ? a : b)
 #define MIN(a, b) (a < b ? a : b)
 #define CLAMP(val, min, max) (MIN(MAX(val, min), max))
+#define ABS(val) (val >= 0 ? val : -val)
 
 // ####################################################################################################################
 // Buffer
 typedef struct {
     u8  *data;
     i64 length;
-
-    // We store a capacity for writing operations, otherwise we wouldn't need it at all. This value can be ignored in
-    // most use cases. Read length instead.
-    i64 capacity;
 } Buffer;
 
-#define BUFFER_ARRAY(array) Buffer{ (u8*)array, ARRAY_LENGTH(array), ARRAY_LENGTH(array) }
+#define BUFFER_ARRAY(array) Buffer{ (u8*)array, ARRAY_LENGTH(array) }
 
 Buffer buffer_slice(Buffer buf, i64 start, i64 end);
 
 // Read
-bool buffer_read    (Buffer *buffer, void *out, i64 count);
-bool buffer_read_try(Buffer *buffer, void *out, i64 count);
-#define buffer_read_type(buffer, out)     buffer_read(buffer, out, sizeof(*out))
-#define buffer_read_type_try(buffer, out) buffer_read_try(buffer, out, sizeof(*out))
-
-// Write
-//bool buffer_write        (Buffer *buffer, void *value, i64 count);
-//bool buffer_write_or_zero(Buffer *buffer, void *value, i64 count);
-//#define buffer_write_type(buffer, value)         buffer_write(buffer, sizeof(value), value)
-//#define buffer_write_type_or_zero(buffer, value) buffer_write_or_zero(buffer, sizeof(value), value)
-
+bool buffer_read(Buffer *buffer, void *out, i64 count);
+bool buffer_read_exact(Buffer *buffer, void *out, i64 count);
+#define buffer_read_type(buffer, out) buffer_read(buffer, out, sizeof(*out))
+#define buffer_read_type_exact(buffer, out) buffer_read_exact(buffer, out, sizeof(*out))
 
 // ####################################################################################################################
 // String
-typedef struct {
-    u8  *data;
-    i64 length;
-} String;
+typedef Buffer String;
 
 #define S(string) String{ (u8*)string, ARRAY_LENGTH(string)-1 }
-#define CSTR(string) String{ (u8*)string, strlen(string) }
 
-// Comparison
+String string_cstring(const char *str);
+
+// Equality
 bool string_equals(String a, String b);
 
 // Search
-//bool string_starts_with(String str, String search);
-//bool string_ends_with(String str, String search);
-//i64  string_find(String str, String search);
+bool string_starts_with(String str, String search);
+bool string_ends_with(String str, String search);
 
 // Slices
 String string_slice(String str, i64 start, i64 end);
@@ -118,12 +105,11 @@ bool buffer_read(Buffer *buffer, void *out, i64 count) {
 
     buffer->data += read_bytes;
     buffer->length -= read_bytes;
-    buffer->capacity -= read_bytes;
 
     return read_bytes == count;
 }
 
-bool buffer_read_try(Buffer *buffer, void *out, i64 count) {
+bool buffer_read_exact(Buffer *buffer, void *out, i64 count) {
     bool success = false;
 
     i64 read_bytes = CLAMP(count, 0, buffer->length);
@@ -136,7 +122,6 @@ bool buffer_read_try(Buffer *buffer, void *out, i64 count) {
 
     buffer->data += read_bytes;
     buffer->length -= read_bytes;
-    buffer->capacity -= read_bytes;
 
     return success;
 }
@@ -146,8 +131,7 @@ Buffer buffer_slice(Buffer buf, i64 start, i64 end) {
     i64 actual_end = CLAMP(end, actual_start, buf.length);
     i64 length = actual_end - actual_start;
     Buffer ret = {
-        buf.data,
-        length,
+        buf.data + actual_start,
         length
     };
     return ret;
@@ -155,20 +139,36 @@ Buffer buffer_slice(Buffer buf, i64 start, i64 end) {
 
 // ####################################################################################################################
 // String
+String string_cstring(const char *str) {
+    String ret = {
+        (u8*)str,
+        (i64)strlen(str)
+    };
+    return ret;
+}
+
 bool string_equals(String a, String b) {
     bool equals = a.length == b.length && memcmp(a.data, b.data, a.length) == 0;
     return equals;
 }
 
 String string_slice(String str, i64 start, i64 end) {
-    i64 actual_start = CLAMP(start, 0, str.length);
-    i64 actual_end = CLAMP(end, actual_start, str.length);
-    i64 length = actual_end - actual_start;
-    //printf("len = %llu, start = %llu, end = %llu\n", str.length, actual_start, actual_end);
-    String ret = {
-        str.data + actual_start,
-        length
-    };
+    String ret = (String)buffer_slice((Buffer)str, start, end);
     return ret;
+}
+
+bool string_starts_with(String str, String search) {
+    bool ok = str.length >= search.length && memcmp(str.data, search.data, search.length) == 0;
+    return ok;
+}
+
+bool string_ends_with(String str, String search) {
+    bool ok = false;
+    if (str.length >= search.length) {
+        i64 displacement = str.length - search.length;
+        u8 *astr = str.data + displacement;
+        ok = memcmp(astr, search.data, search.length) == 0;
+    }
+    return ok;
 }
 #endif

@@ -22,7 +22,6 @@ static const char *test_buffer_read_u8() {
     }
 
     assert(buffer.length == 0);
-    assert(buffer.capacity == 0);
 
     return __func__;
 }
@@ -43,7 +42,6 @@ static const char *test_buffer_read_u32() {
     }
 
     assert(buffer.length == 0);
-    assert(buffer.capacity == 0);
 
     return __func__;
 }
@@ -58,22 +56,20 @@ static const char *test_buffer_read_with_less_data_left() {
     assert(!success);
     assert(num == 42);
     assert(buffer.length == 0);
-    assert(buffer.capacity == 0);
 
     return __func__;
 }
 
-static const char *test_buffer_read_try_with_less_data_left() {
+static const char *test_buffer_read_exact_with_less_data_left() {
     u8 b[1] = { 42 };
     Buffer buffer = BUFFER_ARRAY(b);
 
     u64 num = 0;
-    bool success = buffer_read_type_try(&buffer, &num);
+    bool success = buffer_read_type_exact(&buffer, &num);
 
     assert(!success);
     assert(num == 0);
     assert(buffer.length == 0);
-    assert(buffer.capacity == 0);
 
     return __func__;
 }
@@ -88,7 +84,19 @@ static const char *test_buffer_read_invalid_length() {
     assert(! success);
     assert(num == 2);
     assert(buffer.length == 1);
-    assert(buffer.capacity == 1);
+
+    return __func__;
+}
+
+static const char *test_string_cstring_equality() {
+    const char *a = "foo";
+    const char *b = "bar";
+
+    String c = string_cstring(a);
+    String d = string_cstring(b);
+
+    assert(string_equals(c, S("foo")));
+    assert(string_equals(d, S("bar")));
 
     return __func__;
 }
@@ -181,14 +189,47 @@ static const char *test_string_slice() {
     return __func__;
 }
 
+static const char *test_string_starts_with() {
+    String sentence = S("The quick brown fox");
+    String a = S("The");
+    String b = S("The quick");
+    String c = S("The quick brown fox");
+    String d = S("The quick brown fox j");
+
+    assert(string_starts_with(sentence, a));
+    assert(string_starts_with(sentence, b));
+    assert(string_starts_with(sentence, c));
+    assert(! string_starts_with(sentence, d));
+
+    return __func__;
+}
+
+static const char *test_string_ends_with() {
+    String sentence = S("quick brown fox");
+    String a = S("fox");
+    String b = S("brown fox");
+    String c = S("quick brown fox");
+    String d = S("The quick brown fox");
+
+    assert(string_ends_with(sentence, a));
+    assert(string_ends_with(sentence, b));
+    assert(string_ends_with(sentence, c));
+    assert(! string_ends_with(sentence, d));
+
+    return __func__;
+}
+
 static TestFunction tests[] = {
     test_buffer_read_u8,
     test_buffer_read_u32,
     test_buffer_read_with_less_data_left,
-    test_buffer_read_try_with_less_data_left,
+    test_buffer_read_exact_with_less_data_left,
     test_buffer_read_invalid_length,
+    test_string_cstring_equality,
     test_string_equality,
     test_string_slice,
+    test_string_starts_with,
+    test_string_ends_with,
 };
 
 int main(void) {
@@ -201,4 +242,3 @@ int main(void) {
     printf("\n%llu tests passed\n", ARRAY_LENGTH(tests));
     return 0;
 }
-
