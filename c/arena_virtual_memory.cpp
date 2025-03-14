@@ -22,9 +22,9 @@ static void vm_free(u8* memory, i64 size);
 static void vm_commit_pages(u8* start_memory, i64 length);
 static int  get_page_size();
 
-Arena arena_alloc(i64 max_capacity) {
+Arena arena_alloc() {
     Arena arena = {};
-    arena.capacity = max_capacity;
+    arena.capacity = 1*GiB;
     arena.memory = vm_reserve(arena.capacity);
     arena.page_size = get_page_size();
 

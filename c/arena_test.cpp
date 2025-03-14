@@ -16,7 +16,7 @@ static inline size_t ceil_div(size_t a, size_t b) {
 }
 
 static const char *test_push_for_primitive_types() {
-    Arena arena = arena_alloc(1*GiB);
+    Arena arena = arena_alloc();
     u8  *a = arena_push_type(&arena, u8);
     *a = 255;
 
@@ -39,7 +39,7 @@ static const char *test_push_for_primitive_types() {
 }
 
 static const char *test_push_and_clear_for_primitive_types() {
-    Arena arena = arena_alloc(1*GiB);
+    Arena arena = arena_alloc();
     u8  *a = arena_push_type(&arena, u8);
     *a = 255;
 
@@ -84,7 +84,7 @@ static const char *test_push_and_clear_for_primitive_types() {
 static const char *test_reserve_arrays() {
     size_t array_size = 4096;
 
-    Arena arena = arena_alloc(1*GiB);
+    Arena arena = arena_alloc();
     u8 *a = arena_push_array(&arena, u8, array_size);
     FILL_ARRAY_WITH_GARBAGE(a, array_size);
     a[0] = 100;
@@ -121,7 +121,7 @@ static const char *test_reserve_arrays() {
 const char* test_reserve_primitive_types_and_arrays() {
     size_t array_size = 4096;
 
-    Arena arena = arena_alloc(1*GiB);
+    Arena arena = arena_alloc();
     u8  *a = arena_push_type(&arena, u8);
     *a = 255;
 
@@ -180,7 +180,7 @@ const char* test_reserve_primitive_types_and_arrays() {
 }
 
 static const char* test_reserve_arrays_of_page_size_until_maximum_capacity() {
-    Arena arena = arena_alloc(1*GiB);
+    Arena arena = arena_alloc();
     size_t max_pages_to_commit = ceil_div(arena.capacity, arena.page_size);
 
     for (size_t count = 0; count < 10; count++) {
@@ -196,7 +196,7 @@ static const char* test_reserve_arrays_of_page_size_until_maximum_capacity() {
 }
 
 static const char* test_arena_capacity_limit() {
-    Arena arena = arena_alloc(1*GiB);
+    Arena arena = arena_alloc();
 
     u8 *one_gigabyte;
     for (size_t i = 0; i < 10; i++) {
@@ -210,7 +210,7 @@ static const char* test_arena_capacity_limit() {
 }
 
 static const char* test_push_must_be_zero() {
-    Arena arena = arena_alloc(1*GiB);
+    Arena arena = arena_alloc();
 
     {
         u8 *a = arena_push_type(&arena, u8);

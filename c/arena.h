@@ -10,7 +10,7 @@ typedef struct {
     i64 page_size;
 } Arena;
 
-Arena arena_alloc(i64 max_capacity);
+Arena arena_alloc();
 void  arena_free (Arena *arena);
 
 void *arena_push (Arena *arena, i64 size);
