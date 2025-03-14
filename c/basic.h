@@ -1,3 +1,19 @@
+/*
+ * Common utilities that can be used in any project. This is a single file that contains definitions and implementation
+ * at the style of STB libraries.
+ *
+ * Here's how you're supposed to use this file:
+ * - Copy this file into your project
+ * - In your main file include this file in the following way. Only do this once in your project or you will get linking errors:
+ *      #define BASIC_IMPLEMENTATION
+ *      #include "basic.h"
+ *  - In any other project file include this file as normal:
+ *      #include "basic.h"
+ *
+ * Tests are defined in `basic_test.cpp` file. To run the tests compile that file and run `basic_test`. It's a single file
+ * which only depends on the C standard library.
+ * */
+
 #ifndef __BASIC_HEADER_H__
 #define __BASIC_HEADER_H__
 
