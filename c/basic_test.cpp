@@ -13,7 +13,7 @@ static const char *test_buffer_read_u8() {
     u8 counter = 0;
     while (buffer.length > 0) {
         u8 num;
-        bool success = buffer_read_type(&buffer, &num);
+        bool success = buffer_read_u8(&buffer, &num);
 
         assert(success);
         assert(num == counter);
@@ -33,7 +33,7 @@ static const char *test_buffer_read_u32() {
     u32 counter = 0;
     while (buffer.length > 0) {
         u32 num;
-        bool success = buffer_read_type(&buffer, &num);
+        bool success = buffer_read_u32(&buffer, &num);
 
         assert(success);
         assert(num == counter);
@@ -50,22 +50,9 @@ static const char *test_buffer_read_with_less_data_left() {
     u8 b[1] = { 42 };
     Buffer buffer = BUFFER_ARRAY(b);
 
-    u64 num = 0;
-    bool success = buffer_read_type(&buffer, &num);
-
-    assert(!success);
-    assert(num == 42);
-    assert(buffer.length == 0);
-
-    return __func__;
-}
-
-static const char *test_buffer_read_exact_with_less_data_left() {
-    u8 b[1] = { 42 };
-    Buffer buffer = BUFFER_ARRAY(b);
-
-    u64 num = 0;
-    bool success = buffer_read_type_exact(&buffer, &num);
+    u64 num = 4;
+    bool success = buffer_read(&buffer, &num, sizeof(num));
+    //bool success = buffer_read_struct(&buffer, &num);
 
     assert(!success);
     assert(num == 0);
@@ -84,6 +71,19 @@ static const char *test_buffer_read_invalid_length() {
     assert(! success);
     assert(num == 2);
     assert(buffer.length == 1);
+
+    return __func__;
+}
+
+static const char *test_string_cstring() {
+    const char *a = "foo"; // len = 3
+    const char *b = "catto"; // len = 5
+
+    String c = string_cstring(a);
+    String d = string_cstring(b);
+
+    assert(c.length == 3);
+    assert(d.length == 5);
 
     return __func__;
 }
@@ -223,8 +223,8 @@ static TestFunction tests[] = {
     test_buffer_read_u8,
     test_buffer_read_u32,
     test_buffer_read_with_less_data_left,
-    test_buffer_read_exact_with_less_data_left,
     test_buffer_read_invalid_length,
+    test_string_cstring,
     test_string_cstring_equality,
     test_string_equality,
     test_string_slice,

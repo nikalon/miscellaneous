@@ -78,10 +78,34 @@ typedef struct {
 Buffer buffer_slice(Buffer buf, i64 start, i64 end);
 
 // Read
+// bool buffer_read_u8(Buffer *buffer, u8 *out);
+// ...
+// bool buffer_read_f64(Buffer *buffer, f64 *out);
+#define BUFFER_READ_FUNCTIONS \
+    X(b8)  \
+    X(b16) \
+    X(b32) \
+    X(b64) \
+    X(i8)  \
+    X(i16) \
+    X(i32) \
+    X(i64) \
+    X(u8)  \
+    X(u16) \
+    X(u32) \
+    X(u64) \
+    X(f32) \
+    X(f64)
+
+// If there's not enough bytes to read it reads zero and consumes the buffer.
+#define X(type) bool buffer_read_##type(Buffer *buffer, type *out);
+BUFFER_READ_FUNCTIONS
+#undef X
+
 bool buffer_read(Buffer *buffer, void *out, i64 count);
-bool buffer_read_exact(Buffer *buffer, void *out, i64 count);
-#define buffer_read_type(buffer, out) buffer_read(buffer, out, sizeof(*out))
-#define buffer_read_type_exact(buffer, out) buffer_read_exact(buffer, out, sizeof(*out))
+#define buffer_read_struct(buffer, out) buffer_read(buffer, out, sizeof(*out))
+
+// If there's not enough bytes to read it reads zero first and then tries to read as much bytes as possible before consuming the buffer.
 
 // ####################################################################################################################
 // String
@@ -115,23 +139,30 @@ String string_slice(String str, i64 start, i64 end);
 #undef BASIC_IMPLEMENTATION
 // ####################################################################################################################
 // Buffer
+#define X(type) \
+    bool buffer_read_##type(Buffer *buffer, type *out) { \
+        bool ok = false; \
+        i64 read_bytes = MIN(sizeof(type), buffer->length); \
+        if (read_bytes == sizeof(type)) { \
+            *out = *((type*)buffer->data); \
+            ok = true; \
+        } else { \
+            *out = 0; \
+        } \
+        buffer->data += read_bytes; \
+        buffer->length -= read_bytes; \
+        return ok; \
+    }
+BUFFER_READ_FUNCTIONS
+#undef X
+
 bool buffer_read(Buffer *buffer, void *out, i64 count) {
-    i64 read_bytes = CLAMP(count, 0, buffer->length);
-    memcpy(out, buffer->data, read_bytes);
-
-    buffer->data += read_bytes;
-    buffer->length -= read_bytes;
-
-    return read_bytes == count;
-}
-
-bool buffer_read_exact(Buffer *buffer, void *out, i64 count) {
-    bool success = false;
+    bool ok = false;
 
     i64 read_bytes = CLAMP(count, 0, buffer->length);
     if (read_bytes == count) {
         memcpy(out, buffer->data, read_bytes);
-        success = true;
+        ok = true;
     } else {
         memset(out, 0, read_bytes);
     }
@@ -139,7 +170,7 @@ bool buffer_read_exact(Buffer *buffer, void *out, i64 count) {
     buffer->data += read_bytes;
     buffer->length -= read_bytes;
 
-    return success;
+    return ok;
 }
 
 Buffer buffer_slice(Buffer buf, i64 start, i64 end) {
