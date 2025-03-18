@@ -75,6 +75,44 @@ static const char *test_buffer_read_invalid_length() {
     return __func__;
 }
 
+static const char *test_buffer_read_nocopy() {
+    u8 b[8] = { 1, 2, 3, 4, 5, 6, 7, 8 };
+    Buffer in = BUFFER_ARRAY(b);
+
+    // Read zero bytes
+    Buffer out;
+    bool ok = buffer_read_nocopy(&in, &out, 0);
+    assert(ok);
+    assert(in.length == 8);
+    assert(out.length == 0);
+
+    // Read one byte
+    ok = buffer_read_nocopy(&in, &out, 1);
+    assert(ok);
+    assert(in.length == 7);
+    assert(out.length == 1);
+    assert(out.data[0] == 1);
+
+    // Read 4 bytes
+    ok = buffer_read_nocopy(&in, &out, 4);
+    assert(ok);
+    assert(in.length == 3);
+    assert(out.length == 4);
+    assert(out.data[0] == 2);
+    assert(out.data[1] == 3);
+    assert(out.data[2] == 4);
+    assert(out.data[3] == 5);
+
+    // Read 8 bytes. It's much more data than what the input buffer has.
+    assert(in.length > 0);
+    ok = buffer_read_nocopy(&in, &out, 8);
+    assert(!ok);
+    assert(in.length == 0);
+    assert(out.length == 0);
+
+    return __func__;
+}
+
 static const char *test_string_cstring() {
     const char *a = "foo"; // len = 3
     const char *b = "catto"; // len = 5
@@ -224,6 +262,7 @@ static TestFunction tests[] = {
     test_buffer_read_u32,
     test_buffer_read_with_less_data_left,
     test_buffer_read_invalid_length,
+    test_buffer_read_nocopy,
     test_string_cstring,
     test_string_cstring_equality,
     test_string_equality,

@@ -104,6 +104,7 @@ BUFFER_READ_FUNCTIONS
 
 bool buffer_read(Buffer *buffer, void *out, i64 count);
 #define buffer_read_struct(buffer, out) buffer_read(buffer, out, sizeof(*out))
+bool buffer_read_nocopy(Buffer *inBuffer, Buffer *outBuffer, i64 count);
 
 // If there's not enough bytes to read it reads zero first and then tries to read as much bytes as possible before consuming the buffer.
 
@@ -112,24 +113,12 @@ bool buffer_read(Buffer *buffer, void *out, i64 count);
 typedef Buffer String;
 
 #define S(string) String{ (u8*)string, ARRAY_LENGTH(string)-1 }
-
 String string_cstring(const char *str);
 
-// Equality
 bool string_equals(String a, String b);
-
-// Search
 bool string_starts_with(String str, String search);
 bool string_ends_with(String str, String search);
-
-// Slices
 String string_slice(String str, i64 start, i64 end);
-//String string_trim(String str);
-//String string_trim_left(String str);
-//String string_trim_right(String str);
-
-//String *string_concat(String a, String var...);
-//String *string_join(String a, String separator, String var...);
 
 #endif
 
@@ -142,7 +131,7 @@ String string_slice(String str, i64 start, i64 end);
 #define X(type) \
     bool buffer_read_##type(Buffer *buffer, type *out) { \
         bool ok = false; \
-        i64 read_bytes = MIN(sizeof(type), buffer->length); \
+        i64 read_bytes = MIN((i64)sizeof(type), buffer->length); \
         if (read_bytes == sizeof(type)) { \
             *out = *((type*)buffer->data); \
             ok = true; \
@@ -169,6 +158,26 @@ bool buffer_read(Buffer *buffer, void *out, i64 count) {
 
     buffer->data += read_bytes;
     buffer->length -= read_bytes;
+
+    return ok;
+}
+
+bool buffer_read_nocopy(Buffer *inBuffer, Buffer *outBuffer, i64 count) {
+    bool ok = false;
+    outBuffer->data = inBuffer->data;
+
+    if (inBuffer->length >= count) {
+        outBuffer->length = count;
+
+        inBuffer->data += count;
+        inBuffer->length -= count;
+
+        ok = true;
+    } else {
+        // Not enough bytes to read. Consume input buffer anyway.
+        inBuffer->length = 0;
+        outBuffer->length = 0;
+    }
 
     return ok;
 }
