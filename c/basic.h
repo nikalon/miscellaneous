@@ -1,21 +1,13 @@
-/*
- * Common utilities that can be used in any project. This is a single file that contains definitions and implementation
- * at the style of STB libraries.
- *
- * Here's how you're supposed to use this file:
- * - Copy this file into your project
- * - In your main file include this file in the following way. Only do this once in your project or you will get linking errors:
- *      #define BASIC_IMPLEMENTATION
- *      #include "basic.h"
- *  - In any other project file include this file as normal:
- *      #include "basic.h"
- *
- * Tests are defined in `basic_test.cpp` file. To run the tests compile that file and run `basic_test`. It's a single file
- * which only depends on the C standard library.
- * */
+#pragma once
 
-#ifndef __BASIC_HEADER_H__
-#define __BASIC_HEADER_H__
+/*
+ * Common utilities that can be used in any project. It includes:
+ *  - Primitive types
+ *  - Buffers
+ *  - Strings
+ *
+ * Tests are defined in `basic_test.cpp`.
+ * */
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -23,7 +15,7 @@
 
 // ####################################################################################################################
 // Primitive types
-//
+
 // Enable support for boolean values in C
 #ifndef __cplusplus
 typedef int   bool;
@@ -70,14 +62,17 @@ typedef double f64;
 // Buffer
 typedef struct {
     u8  *data;
-    i64 length;
+    u64 length;
 } Buffer;
 
-#define BUFFER_ARRAY(array) Buffer{ (u8*)array, ARRAY_LENGTH(array) }
+#define BUFFER_FROM_ARRAY(array) Buffer{ (u8*)array, sizeof(array) }
 
-Buffer buffer_slice(Buffer buf, i64 start, i64 end);
+// Slice
+Buffer buffer_slice(Buffer buf, u64 start, u64 end);
 
-// Read
+// Read. Any read operation consumes the buffer, even if there's not enough bytes to read.
+bool buffer_read_nocopy(Buffer *inBuffer, Buffer *outBuffer, u64 count); // @TODO: Choose a better function name
+
 // bool buffer_read_u8(Buffer *buffer, u8 *out);
 // ...
 // bool buffer_read_f64(Buffer *buffer, f64 *out);
@@ -102,129 +97,17 @@ Buffer buffer_slice(Buffer buf, i64 start, i64 end);
 BUFFER_READ_FUNCTIONS
 #undef X
 
-bool buffer_read(Buffer *buffer, void *out, i64 count);
-#define buffer_read_struct(buffer, out) buffer_read(buffer, out, sizeof(*out))
-bool buffer_read_nocopy(Buffer *inBuffer, Buffer *outBuffer, i64 count);
-
-// If there's not enough bytes to read it reads zero first and then tries to read as much bytes as possible before consuming the buffer.
+bool    buffer_read_count (Buffer *buffer, void *out, u64 count);
+#define buffer_read_struct(buffer, out) buffer_read_count(buffer, out, sizeof(*out))
 
 // ####################################################################################################################
 // String
 typedef Buffer String;
 
 #define S(string) String{ (u8*)string, ARRAY_LENGTH(string)-1 }
-String string_cstring(const char *str);
+String string_from_cstring(const char *str);
 
-bool string_equals(String a, String b);
-bool string_starts_with(String str, String search);
-bool string_ends_with(String str, String search);
-String string_slice(String str, i64 start, i64 end);
-
-#endif
-
-
-
-#ifdef BASIC_IMPLEMENTATION
-#undef BASIC_IMPLEMENTATION
-// ####################################################################################################################
-// Buffer
-#define X(type) \
-    bool buffer_read_##type(Buffer *buffer, type *out) { \
-        bool ok = false; \
-        i64 read_bytes = MIN((i64)sizeof(type), buffer->length); \
-        if (read_bytes == sizeof(type)) { \
-            *out = *((type*)buffer->data); \
-            ok = true; \
-        } else { \
-            *out = 0; \
-        } \
-        buffer->data += read_bytes; \
-        buffer->length -= read_bytes; \
-        return ok; \
-    }
-BUFFER_READ_FUNCTIONS
-#undef X
-
-bool buffer_read(Buffer *buffer, void *out, i64 count) {
-    bool ok = false;
-
-    i64 read_bytes = CLAMP(count, 0, buffer->length);
-    if (read_bytes == count) {
-        memcpy(out, buffer->data, read_bytes);
-        ok = true;
-    } else {
-        memset(out, 0, read_bytes);
-    }
-
-    buffer->data += read_bytes;
-    buffer->length -= read_bytes;
-
-    return ok;
-}
-
-bool buffer_read_nocopy(Buffer *inBuffer, Buffer *outBuffer, i64 count) {
-    bool ok = false;
-    outBuffer->data = inBuffer->data;
-
-    if (inBuffer->length >= count) {
-        outBuffer->length = count;
-
-        inBuffer->data += count;
-        inBuffer->length -= count;
-
-        ok = true;
-    } else {
-        // Not enough bytes to read. Consume input buffer anyway.
-        inBuffer->length = 0;
-        outBuffer->length = 0;
-    }
-
-    return ok;
-}
-
-Buffer buffer_slice(Buffer buf, i64 start, i64 end) {
-    i64 actual_start = CLAMP(start, 0, buf.length);
-    i64 actual_end = CLAMP(end, actual_start, buf.length);
-    i64 length = actual_end - actual_start;
-    Buffer ret = {
-        buf.data + actual_start,
-        length
-    };
-    return ret;
-}
-
-// ####################################################################################################################
-// String
-String string_cstring(const char *str) {
-    String ret = {
-        (u8*)str,
-        (i64)strlen(str)
-    };
-    return ret;
-}
-
-bool string_equals(String a, String b) {
-    bool equals = a.length == b.length && memcmp(a.data, b.data, a.length) == 0;
-    return equals;
-}
-
-String string_slice(String str, i64 start, i64 end) {
-    String ret = (String)buffer_slice((Buffer)str, start, end);
-    return ret;
-}
-
-bool string_starts_with(String str, String search) {
-    bool ok = str.length >= search.length && memcmp(str.data, search.data, search.length) == 0;
-    return ok;
-}
-
-bool string_ends_with(String str, String search) {
-    bool ok = false;
-    if (str.length >= search.length) {
-        i64 displacement = str.length - search.length;
-        u8 *astr = str.data + displacement;
-        ok = memcmp(astr, search.data, search.length) == 0;
-    }
-    return ok;
-}
-#endif
+bool   string_equals     (String a, String b);
+bool   string_starts_with(String str, String search);
+bool   string_ends_with  (String str, String search);
+String string_slice      (String str, u64 start, u64 end);

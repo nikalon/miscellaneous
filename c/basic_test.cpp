@@ -1,14 +1,14 @@
+// @TODO: Print failed tests instead of aborting the program
+
 #include <stdio.h>
 #include <assert.h>
-
-#define BASIC_IMPLEMENTATION
 #include "basic.h"
 
 typedef const char* (*TestFunction)(void);
 
 static const char *test_buffer_read_u8() {
     u8 b[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
-    Buffer buffer = BUFFER_ARRAY(b);
+    Buffer buffer = BUFFER_FROM_ARRAY(b);
 
     u8 counter = 0;
     while (buffer.length > 0) {
@@ -28,7 +28,7 @@ static const char *test_buffer_read_u8() {
 
 static const char *test_buffer_read_u32() {
     u32 b[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
-    Buffer buffer = BUFFER_ARRAY(b);
+    Buffer buffer = BUFFER_FROM_ARRAY(b);
 
     u32 counter = 0;
     while (buffer.length > 0) {
@@ -46,12 +46,12 @@ static const char *test_buffer_read_u32() {
     return __func__;
 }
 
-static const char *test_buffer_read_with_less_data_left() {
+static const char *test_buffer_read_count_with_less_data_left() {
     u8 b[1] = { 42 };
-    Buffer buffer = BUFFER_ARRAY(b);
+    Buffer buffer = BUFFER_FROM_ARRAY(b);
 
     u64 num = 4;
-    bool success = buffer_read(&buffer, &num, sizeof(num));
+    bool success = buffer_read_count(&buffer, &num, sizeof(num));
     //bool success = buffer_read_struct(&buffer, &num);
 
     assert(!success);
@@ -61,23 +61,9 @@ static const char *test_buffer_read_with_less_data_left() {
     return __func__;
 }
 
-static const char *test_buffer_read_invalid_length() {
-    u8 b[1] = { 42 };
-    Buffer buffer = BUFFER_ARRAY(b);
-
-    u8 num = 2;
-    bool success = buffer_read(&buffer, &num, -1);
-
-    assert(! success);
-    assert(num == 2);
-    assert(buffer.length == 1);
-
-    return __func__;
-}
-
 static const char *test_buffer_read_nocopy() {
     u8 b[8] = { 1, 2, 3, 4, 5, 6, 7, 8 };
-    Buffer in = BUFFER_ARRAY(b);
+    Buffer in = BUFFER_FROM_ARRAY(b);
 
     // Read zero bytes
     Buffer out;
@@ -113,12 +99,12 @@ static const char *test_buffer_read_nocopy() {
     return __func__;
 }
 
-static const char *test_string_cstring() {
+static const char *test_string_from_cstring() {
     const char *a = "foo"; // len = 3
     const char *b = "catto"; // len = 5
 
-    String c = string_cstring(a);
-    String d = string_cstring(b);
+    String c = string_from_cstring(a);
+    String d = string_from_cstring(b);
 
     assert(c.length == 3);
     assert(d.length == 5);
@@ -126,12 +112,12 @@ static const char *test_string_cstring() {
     return __func__;
 }
 
-static const char *test_string_cstring_equality() {
+static const char *test_string_from_cstring_equality() {
     const char *a = "foo";
     const char *b = "bar";
 
-    String c = string_cstring(a);
-    String d = string_cstring(b);
+    String c = string_from_cstring(a);
+    String d = string_from_cstring(b);
 
     assert(string_equals(c, S("foo")));
     assert(string_equals(d, S("bar")));
@@ -209,7 +195,7 @@ static const char *test_string_slice() {
 
 
     // Slices with length > 0 out of bounds
-    slice = string_slice(sentence, -2, 3);
+    slice = string_slice(sentence, 0, 3);
     assert(string_equals(slice, S("The")));
 
     slice = string_slice(sentence, 40, 88);
@@ -221,7 +207,7 @@ static const char *test_string_slice() {
     assert(slice.length == 0);
     assert(string_equals(slice, S("")));
 
-    slice = string_slice(sentence, 3, -3);
+    slice = string_slice(sentence, 3, 3);
     assert(slice.length == 0);
     assert(string_equals(slice, S("")));
     return __func__;
@@ -260,11 +246,10 @@ static const char *test_string_ends_with() {
 static TestFunction tests[] = {
     test_buffer_read_u8,
     test_buffer_read_u32,
-    test_buffer_read_with_less_data_left,
-    test_buffer_read_invalid_length,
+    test_buffer_read_count_with_less_data_left,
     test_buffer_read_nocopy,
-    test_string_cstring,
-    test_string_cstring_equality,
+    test_string_from_cstring,
+    test_string_from_cstring_equality,
     test_string_equality,
     test_string_slice,
     test_string_starts_with,

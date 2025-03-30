@@ -1,9 +1,8 @@
+// @TODO: Print failed tests instead of aborting the program
+
 #include <stdio.h>
 #include <assert.h>
-
-#define BASIC_IMPLEMENTATION
 #include "basic.h"
-
 #include "arena.h"
 
 typedef const char* (*TestFunction)(void);
