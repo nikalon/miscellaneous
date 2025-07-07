@@ -8,8 +8,8 @@ This directory contains custom configuration files for Neovim. It's based on [ki
 To configure Neovim follow these steps:
 
 1. Copy init.lua into the runtime path
-Linux: `$XDG_CONFIG_HOME/nvim`
-Windows: `%LOCALAPPDATA%\nvim`
+- Linux: `$XDG_CONFIG_HOME/nvim`
+- Windows: `%LOCALAPPDATA%\nvim`
 
 2. Install a C compiler for neovim-treesitter. I highly recommend to install `zig` in Widows because it's the easiest option and requires no setup.
 
