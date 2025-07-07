@@ -15,7 +15,7 @@ To configure Neovim follow these steps:
 
 In Windows:
 ```cmd
-winget install zig.zig`
+winget install zig.zig
 ```
 
 3. Enable integration with system clipboard.
