@@ -150,7 +150,7 @@ static u8* vm_reserve(u64 size) {
 
 static void vm_free(u8* memory, u64 size) {
 #ifdef _WIN32
-    UNUSED(size);
+    (void) size;
     VirtualFree(memory, 0, MEM_RELEASE);
 #else
     munmap(memory, size);

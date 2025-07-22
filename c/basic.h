@@ -5,6 +5,7 @@
  *  - Primitive types
  *  - Buffers
  *  - Strings
+ *  - Basic file I/O
  *
  * Tests are defined in `basic_test.cpp`.
  * */
