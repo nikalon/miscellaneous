@@ -1,3 +1,8 @@
+#include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "basic.h"
 
 // ####################################################################################################################
@@ -77,6 +82,13 @@ String string_from_cstring(const char *str) {
     return ret;
 }
 
+const char *string_to_cstring(Arena *arena, String str) {
+    char *ret = arena_push_array(arena, char, str.length + 1);
+    memcpy(ret, str.data, str.length);
+    ret[str.length] = 0;
+    return ret;
+}
+
 bool string_equals(String a, String b) {
     bool equals = a.length == b.length && memcmp(a.data, b.data, a.length) == 0;
     return equals;
@@ -99,5 +111,75 @@ bool string_ends_with(String str, String search) {
         u8 *astr = str.data + displacement;
         ok = memcmp(astr, search.data, search.length) == 0;
     }
+    return ok;
+}
+
+String string_concat(Arena *arena, String a, String b) {
+    assert(arena != 0);
+
+    u64 length = a.length + b.length;
+    u8 *data = arena_push_array(arena, u8, length);
+    memcpy(data, a.data, a.length);
+    memcpy(data + a.length, b.data, b.length);
+
+    String ret = {
+        .data = data,
+        .length = length
+    };
+    return ret;
+}
+
+// ####################################################################################################################
+// File I/O
+bool read_entire_file(Arena *arena, String file_name, Buffer *out_file_buffer) {
+    // @TODO: Use syscalls directly for Windows and POSIX systems. Use the C standard library as fallback.
+    assert(arena != 0);
+    assert(out_file_buffer != 0);
+
+    bool ok = true;
+    const char *file_name_cstr = string_to_cstring(arena, file_name);
+
+    // Read in binary mode because some operating systems like Windows try to convert some characters and we don't want that
+    FILE *file = fopen(file_name_cstr, "rb");
+    if (file == 0) {
+        ok = false;
+    }
+
+    u8 *file_buffer = 0;
+    u64 file_size = 0;
+    if (ok) {
+        // Get file size
+        fseek(file, 0, SEEK_END);
+        file_size = (u64) ftell(file);
+        fseek(file, 0, SEEK_SET);
+
+        // Read the entire file into RAM
+        file_buffer = arena_push_array(arena, u8, file_size);
+        u64 total_read = 0;
+        while (total_read < file_size) {
+            u64 bytes_read = (u64) fread(file_buffer + total_read, 1, file_size - total_read, file);
+            if (bytes_read == 0) {
+                ok = false;
+                break;
+            }
+
+            total_read += bytes_read;
+        }
+    }
+
+    Buffer out = {
+        .data = 0,
+        .length = 0
+    };
+    if (ok) {
+        out.data = file_buffer;
+        out.length = file_size;
+    }
+    *out_file_buffer = out;
+
+    if (file != 0) {
+        fclose(file);
+    }
+
     return ok;
 }

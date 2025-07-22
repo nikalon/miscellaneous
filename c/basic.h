@@ -10,8 +10,8 @@
  * */
 
 #include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
+
+#include "arena.h"
 
 // ####################################################################################################################
 // Primitive types
@@ -102,12 +102,29 @@ bool    buffer_read_count (Buffer *buffer, void *out, u64 count);
 
 // ####################################################################################################################
 // String
+
+// The String data type doesn't guarantee that it's terminated with a null character. If you want to convert String and
+// C-string back and forth it's best to use the defined functions:
+// - string_from_cstring()
+// - string_to_cstring()
 typedef Buffer String;
 
 #define S(string) String{ (u8*)string, ARRAY_LENGTH(string)-1 }
-String string_from_cstring(const char *str);
+
+// Converts C-string into String
+String      string_from_cstring(const char *str);
+
+// Converts String into a C-string with a null terminator
+const char *string_to_cstring(Arena *arena, String str);
 
 bool   string_equals     (String a, String b);
 bool   string_starts_with(String str, String search);
 bool   string_ends_with  (String str, String search);
 String string_slice      (String str, u64 start, u64 end);
+String string_concat     (Arena *arena, String a, String b);
+
+// ####################################################################################################################
+// File I/O
+
+// Read the entire content of the file requested in file_name and store it into out_file_buffer. Return value indicates success.
+bool read_entire_file(Arena *arena, String file_name, Buffer *out_file_buffer);

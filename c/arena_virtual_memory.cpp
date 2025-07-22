@@ -2,6 +2,9 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+
+#include "arena.h"
 
 #ifdef _WIN32
 #define _WIN32_LEAN_AND_MEAN
@@ -11,8 +14,8 @@
 #include <unistd.h>
 #endif
 
-#include "arena.h"
-
+#define GiB (1024*1024*1024)
+#define MIN(a, b) (a < b ? a : b)
 #define ARENA_MIN_COMMITTED_PAGES 2
 
 static void arena_commit_num_pages(Arena *arena, u64 num_pages);
