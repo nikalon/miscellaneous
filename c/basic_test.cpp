@@ -356,12 +356,13 @@ static const char *test_read_entire_file(Arena *arena) {
     // @NOTE: The file test_file.txt must exist and must contain exactly the following sentence:
     String expected = S("The quick brown fox jumps over the lazy dog.");
 
-    String file_buffer;
+    Buffer file_buffer;
     bool ret = read_entire_file(arena, S("test_file.txt"), &file_buffer);
 
+    String file_buffer_str = BUFFER_TO_STRING(file_buffer);
     assert(ret);
     assert(file_buffer.length == file_size);
-    assert(string_equals(file_buffer, expected));
+    assert(string_equals(file_buffer_str, expected));
 
     return __func__;
 }

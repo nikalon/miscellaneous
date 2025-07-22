@@ -59,6 +59,9 @@ typedef double f64;
 #define CLAMP(val, min, max) (MIN(MAX(val, min), max))
 #define ABS(val) (val >= 0 ? val : -val)
 
+#define STRING_TO_BUFFER(string) Buffer{ .data = (u8*) string.data, .length = string.length }
+#define BUFFER_TO_STRING(buffer) String{ .data = (const u8*) buffer.data, .length = buffer.length }
+
 // ####################################################################################################################
 // Buffer
 typedef struct {
@@ -104,11 +107,15 @@ bool    buffer_read_count (Buffer *buffer, void *out, u64 count);
 // ####################################################################################################################
 // String
 
-// The String data type doesn't guarantee that it's terminated with a null character. If you want to convert String and
-// C-string back and forth it's best to use the defined functions:
-// - string_from_cstring()
-// - string_to_cstring()
-typedef Buffer String;
+// Fat pointer to a read-only string. It's not guaranteed that the string is null-terminated, so don't just assume you can
+// cast String.data into const char* directly. If you want to convert between Strings and C-strings it's best to use the
+// following functions:
+// - string_from_cstring() -> Convert C-string to String. It doesn't allocate any memory because it's just a String view.
+// - string_to_cstring()   -> Convert String to C-string. It allocates memory because we need to write the null character.
+typedef struct {
+    const u8 *data;
+    u64 length;
+} String;
 
 #define S(string) String{ (u8*)string, ARRAY_LENGTH(string)-1 }
 

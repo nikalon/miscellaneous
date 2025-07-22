@@ -95,7 +95,7 @@ bool string_equals(String a, String b) {
 }
 
 String string_slice(String str, u64 start, u64 end) {
-    String ret = (String)buffer_slice((Buffer)str, start, end);
+    String ret = BUFFER_TO_STRING(buffer_slice(STRING_TO_BUFFER(str), start, end));
     return ret;
 }
 
@@ -108,7 +108,7 @@ bool string_ends_with(String str, String search) {
     bool ok = false;
     if (str.length >= search.length) {
         u64 displacement = str.length - search.length;
-        u8 *astr = str.data + displacement;
+        const u8 *astr = str.data + displacement;
         ok = memcmp(astr, search.data, search.length) == 0;
     }
     return ok;
