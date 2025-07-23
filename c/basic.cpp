@@ -3,6 +3,17 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef _WIN32
+    #define _WIN32_LEAN_AND_MEAN
+    #include <windows.h>
+#elif __linux__
+    #include <fcntl.h>
+    #include <sys/stat.h>
+    #include <sys/stat.h>
+    #include <sys/types.h>
+    #include <unistd.h>
+#endif
+
 #include "basic.h"
 
 // ####################################################################################################################
@@ -132,12 +143,116 @@ String string_concat(Arena *arena, String a, String b) {
 // ####################################################################################################################
 // File I/O
 bool read_entire_file(Arena *arena, String file_name, Buffer *out_file_buffer) {
-    // @TODO: Use syscalls directly for Windows and POSIX systems. Use the C standard library as fallback.
     assert(arena != 0);
     assert(out_file_buffer != 0);
 
-    bool ok = true;
+    // @TODO: Enable longer paths in Windows
+#if 0
+    // Disable MAX_PATH for Windows
+    file_name = string_concat(arena, S("\\\\?\\"), file_name);
+#endif
     const char *file_name_cstr = string_to_cstring(arena, file_name);
+
+    bool ok = true;
+    u8 *file_buffer = 0;
+    u64 file_size = 0;
+
+    // @TODO: Fix Windows version
+#if 0
+    // @NOTE: According to the Microsoft documentation "[OpenFile] has limited capabilities and is not recommended. For
+    // new application development, use the CreateFile function."
+    // Source (24/07/2025): https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-openfile?source=recommendations
+    //
+    // With CreateFile() we have also the benefit of supporting paths longer than MAX_PATH characters imposed by older
+    // Windows editions.
+    HANDLE fd = CreateFileA(
+        file_name_cstr,
+        GENERIC_READ,           // Desired access
+        FILE_SHARE_READ,        // Allow other processes to read the file while we have the file opened
+        NULL,                   // The file descriptor cannot be shared with child processes
+        OPEN_EXISTING,          // Open existing file only if it exists
+        FILE_ATTRIBUTE_NORMAL,  // Normal file attributes and I/O operations will be synchronous
+        NULL                    // No attribute template
+    );
+    if (fd == INVALID_HANDLE_VALUE) {
+        ok = false;
+    }
+
+    // Get file size
+    LARGE_INTEGER li_file_size = {};
+    if (ok) {
+        // @NOTE: Microsoft documentation recommends to use GetFileSizeEx() instead of GetFileSize()
+        // Source (24/07/2025): https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getfilesize
+        if (GetFileSizeEx(fd, &li_file_size) == 0) {
+            ok = false;
+        }
+    }
+
+    // Read the entire file into RAM
+    if (ok) {
+        file_size = (u64)li_file_size.QuadPart;
+        file_buffer = arena_push_array(arena, u8, file_size);
+
+        u64 total_read = 0;
+        while (total_read < file_size) {
+            DWORD bytes_read = 0;
+            BOOL read_ok = ReadFile(
+                fd,                         // File descriptor
+                file_buffer + total_read,   // Output buffer
+                file_size - total_read,     // Bytes to read
+                &bytes_read,                // Pointer to number of bytes read
+                NULL
+            );
+            if (!read_ok) {
+                ok = false;
+                break;
+            }
+
+            total_read += bytes_read;
+        }
+    }
+
+    if (fd != INVALID_HANDLE_VALUE) {
+        CloseHandle(fd);
+    }
+
+#elif __linux__
+    int fd = open(file_name_cstr, O_RDONLY);
+    if (fd == -1) {
+        ok = false;
+    }
+
+    // Get file size
+    struct stat st = {};
+    if (ok) {
+        if (fstat(fd, &st) == -1) {
+            ok = false;
+        }
+    }
+
+    // Read the entire file into RAM
+    if (ok) {
+        file_size = (u64)st.st_size;
+        file_buffer = arena_push_array(arena, u8, file_size);
+
+        u64 total_read = 0;
+        while (total_read < file_size) {
+            u64 bytes_read = (u64)read(fd, file_buffer + total_read, file_size - total_read);
+            if (bytes_read == 0) {
+                ok = false;
+                break;
+            }
+
+            total_read += bytes_read;
+        }
+    }
+
+    if (fd != -1) {
+        close(fd);
+    }
+
+#else
+    // Fallback implementation with C-standard library
 
     // Read in binary mode because some operating systems like Windows try to convert some characters and we don't want that
     FILE *file = fopen(file_name_cstr, "rb");
@@ -145,8 +260,6 @@ bool read_entire_file(Arena *arena, String file_name, Buffer *out_file_buffer) {
         ok = false;
     }
 
-    u8 *file_buffer = 0;
-    u64 file_size = 0;
     if (ok) {
         // Get file size
         fseek(file, 0, SEEK_END);
@@ -167,18 +280,15 @@ bool read_entire_file(Arena *arena, String file_name, Buffer *out_file_buffer) {
         }
     }
 
-    Buffer out = {
-        .data = 0,
-        .length = 0
-    };
-    if (ok) {
-        out.data = file_buffer;
-        out.length = file_size;
-    }
-    *out_file_buffer = out;
-
     if (file != 0) {
         fclose(file);
+    }
+
+#endif
+
+    if (ok) {
+        out_file_buffer->data = file_buffer;
+        out_file_buffer->length = file_size;
     }
 
     return ok;

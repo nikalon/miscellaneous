@@ -356,7 +356,7 @@ static const char *test_read_entire_file(Arena *arena) {
     // @NOTE: The file test_file.txt must exist and must contain exactly the following sentence:
     String expected = S("The quick brown fox jumps over the lazy dog.");
 
-    Buffer file_buffer;
+    Buffer file_buffer = {};
     bool ret = read_entire_file(arena, S("test_file.txt"), &file_buffer);
 
     String file_buffer_str = BUFFER_TO_STRING(file_buffer);
@@ -371,7 +371,7 @@ static const char *test_read_entire_file_does_not_exist(Arena *arena) {
     // @NOTE: The file test_file_does_not_exist.txt must not exist in the workspace!
     u64 file_size = 44;
 
-    Buffer file_buffer;
+    Buffer file_buffer = {};
     bool ret = read_entire_file(arena, S("test_file_does_not_exist.txt"), &file_buffer);
 
     assert(ret == false);

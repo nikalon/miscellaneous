@@ -7,11 +7,11 @@
 #include "arena.h"
 
 #ifdef _WIN32
-#define _WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#else
-#include <sys/mman.h>
-#include <unistd.h>
+    #define _WIN32_LEAN_AND_MEAN
+    #include <windows.h>
+#elif __linux__
+    #include <sys/mman.h>
+    #include <unistd.h>
 #endif
 
 #define GiB (1024*1024*1024)
@@ -138,7 +138,7 @@ static u8* vm_reserve(u64 size) {
         abort();
     }
     return memory;
-#else
+#elif __linux__
     u8* memory = (u8*) mmap(0, size, PROT_NONE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
     if (memory == MAP_FAILED) {
         fprintf(stderr, "Failed to reserve memory for Arena\n");
@@ -152,7 +152,7 @@ static void vm_free(u8* memory, u64 size) {
 #ifdef _WIN32
     (void) size;
     VirtualFree(memory, 0, MEM_RELEASE);
-#else
+#elif __linux__
     munmap(memory, size);
 #endif
 }
@@ -163,7 +163,7 @@ static void vm_commit_pages(u8* start_memory, u64 length) {
         fprintf(stderr, "Failed to commit memory pages for Arena\n");
         abort();
     }
-#else
+#elif __linux__
     if (mprotect(start_memory, length, PROT_READ|PROT_WRITE) == -1) {
         fprintf(stderr, "Failed to commit memory pages for Arena\n");
         abort();
@@ -176,7 +176,7 @@ static int get_page_size() {
     SYSTEM_INFO sysinfo;
     GetSystemInfo(&sysinfo);
     return sysinfo.dwAllocationGranularity;
-#else
+#elif __linux__
     int page_size = getpagesize();
     return page_size;
 #endif
