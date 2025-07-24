@@ -415,6 +415,6 @@ int main(void) {
     }
 
     arena_free(&arena_test);
-    printf("\n%llu tests passed\n", ARRAY_LENGTH(tests));
+    printf("\n%lu tests passed\n", ARRAY_LENGTH(tests));
     return 0;
 }

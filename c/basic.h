@@ -52,7 +52,7 @@ typedef double f64;
 #define GiB (1024*MiB)
 #define TiB (1024*GiB)
 
-#define ARRAY_LENGTH(array) (sizeof(array)/sizeof(array[0]))
+#define ARRAY_LENGTH(array) ((u64)(sizeof(array)/sizeof(array[0])))
 
 #define MAX(a, b) (a > b ? a : b)
 #define MIN(a, b) (a < b ? a : b)

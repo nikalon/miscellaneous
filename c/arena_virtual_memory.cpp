@@ -56,7 +56,7 @@ void *arena_push_nozero(Arena *arena, u64 size) {
     // Check we have enough space to reserve
     u64 memory_left = arena->capacity - arena->position;
     if (size > memory_left) {
-        fprintf(stderr, "Arena ran out of memory. Requested %llu bytes to reserve, but arena has only %llu bytes left.\n", size, memory_left);
+        fprintf(stderr, "Arena ran out of memory. Requested %zu bytes to reserve, but arena has only %zu bytes left.\n", size, memory_left);
         abort();
     }
 
