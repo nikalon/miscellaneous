@@ -1,6 +1,4 @@
 #include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 #ifdef _WIN32
@@ -8,7 +6,6 @@
     #include <windows.h>
 #elif __linux__
     #include <fcntl.h>
-    #include <sys/stat.h>
     #include <sys/stat.h>
     #include <sys/types.h>
     #include <unistd.h>
