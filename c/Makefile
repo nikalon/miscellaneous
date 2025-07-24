@@ -1,5 +1,7 @@
+#CXX = x86_64-w64-mingw32-g++
 CXX = g++
 CXXFLAGS = -g
+CC = $(CXX)
 
 all: basic_test arena_test
 
@@ -12,4 +14,4 @@ test: basic_test arena_test
 	./arena_test
 
 clean:
-	rm *.o basic_test arena_test
+	rm -f *.o *.exe basic_test arena_test

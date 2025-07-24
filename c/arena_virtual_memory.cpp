@@ -23,7 +23,7 @@ static inline u64 ceil_div(u64 a, u64 b);
 static u8*  vm_reserve(u64 size);
 static void vm_free(u8* memory, u64 size);
 static void vm_commit_pages(u8* start_memory, u64 length);
-static int  get_page_size();
+static u64  get_page_size();
 
 Arena arena_alloc() {
     Arena arena = {};
@@ -171,13 +171,14 @@ static void vm_commit_pages(u8* start_memory, u64 length) {
 #endif
 }
 
-static int get_page_size() {
+static u64 get_page_size() {
 #ifdef _WIN32
     SYSTEM_INFO sysinfo;
     GetSystemInfo(&sysinfo);
-    return sysinfo.dwAllocationGranularity;
+    return (u64)sysinfo.dwAllocationGranularity;
 #elif __linux__
-    int page_size = getpagesize();
+    // @NOTE: "Portable applications should employ sysconf(_SC_PAGESIZE) instead of getpagesize()". Source: man 2 getpagesize
+    u64 page_size = (u64)sysconf(_SC_PAGESIZE);
     return page_size;
 #endif
 }
