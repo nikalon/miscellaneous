@@ -376,7 +376,6 @@ static const char *test_read_entire_file(Arena *arena) {
 
 static const char *test_read_entire_file_does_not_exist(Arena *arena) {
     // @NOTE: The file test_file_does_not_exist.txt must not exist in the workspace!
-    u64 file_size = 44;
     u64 arena_pos_before_reading_file = arena_get_pos(arena);
 
     Buffer file_buffer = {};
@@ -427,6 +426,6 @@ int main(void) {
     }
 
     arena_free(&arena_test);
-    printf("\n%lu tests passed\n", ARRAY_LENGTH(tests));
+    printf("\n%zu tests passed\n", ARRAY_LENGTH(tests));
     return 0;
 }

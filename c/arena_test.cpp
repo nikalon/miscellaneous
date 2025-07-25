@@ -348,6 +348,6 @@ int main(void) {
         printf("[OK] %s\n", test_name);
     }
 
-    printf("\n%lu tests passed\n\n", ARRAY_LENGTH(tests));
+    printf("\n%zu tests passed\n\n", ARRAY_LENGTH(tests));
     return 0;
 }
