@@ -52,6 +52,7 @@ static void vm_commit_pages(u8 *start, u64 size) {
 static void vm_free_pages(u8 *start, u64 size) {
     // Deallocate memory
 #ifdef _WIN32
+    (void)size;
     VirtualFree(start, 0, MEM_RELEASE);
 #elif __linux__
     munmap(start, size);
