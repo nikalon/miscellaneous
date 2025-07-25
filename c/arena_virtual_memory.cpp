@@ -13,16 +13,16 @@
 
 #include "arena.h"
 
-static u8* vm_reserve(u64 size) {
+static uint8_t* vm_reserve(uint64_t size) {
 #ifdef _WIN32
-    u8* memory = (u8*)VirtualAlloc(0, size, MEM_RESERVE, PAGE_READWRITE);
+    uint8_t* memory = (uint8_t*)VirtualAlloc(0, size, MEM_RESERVE, PAGE_READWRITE);
     if (!memory) {
         fprintf(stderr, "Failed to reserve memory for Arena\n");
         abort();
     }
     return memory;
 #elif __linux__
-    u8* memory = (u8*)mmap(0, size, PROT_NONE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
+    uint8_t* memory = (uint8_t*)mmap(0, size, PROT_NONE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
     if (memory == MAP_FAILED) {
         fprintf(stderr, "Failed to reserve memory for Arena\n");
         abort();
@@ -33,7 +33,7 @@ static u8* vm_reserve(u64 size) {
 #endif
 }
 
-static void vm_commit_pages(u8 *start, u64 size) {
+static void vm_commit_pages(uint8_t *start, uint64_t size) {
 #ifdef _WIN32
     if (!VirtualAlloc(start, size, MEM_COMMIT, PAGE_READWRITE)) {
         fprintf(stderr, "Failed to commit memory pages for Arena\n");
@@ -49,7 +49,7 @@ static void vm_commit_pages(u8 *start, u64 size) {
 #endif
 }
 
-static void vm_free_pages(u8 *start, u64 size) {
+static void vm_free_pages(uint8_t *start, uint64_t size) {
     // Deallocate memory
 #ifdef _WIN32
     (void)size;
@@ -61,28 +61,28 @@ static void vm_free_pages(u8 *start, u64 size) {
 #endif
 }
 
-static u64 get_page_size() {
+static uint64_t get_page_size() {
 #ifdef _WIN32
     SYSTEM_INFO sysinfo;
     GetSystemInfo(&sysinfo);
-    return (u64)sysinfo.dwAllocationGranularity;
+    return (uint64_t)sysinfo.dwAllocationGranularity;
 #elif __linux__
     // @NOTE: "Portable applications should employ sysconf(_SC_PAGESIZE) instead of getpagesize()". Source: man 2 getpagesize
-    u64 page_size = (u64)sysconf(_SC_PAGESIZE);
+    uint64_t page_size = (uint64_t)sysconf(_SC_PAGESIZE);
     return page_size;
 #else
     #error "Not implemented for your platform"
 #endif
 }
 
-inline static u8 *round_up_mult_pow2(u8 *n, u64 pow2) {
+inline static uint8_t *round_up_mult_pow2(uint8_t *n, uint64_t pow2) {
     // Round up to the next multiple of a power of 2. Formula taken from the book Hacker's Delight (2nd edition, chapter 3-1)
     // @NOTE: the following formulas always return 0 if n == 0. That could cause some unexpected bugs if used incorrectly.
-    u64 x = (u64)n;
-    return (u8*)((x + (pow2 - 1)) & -pow2);
+    uint64_t x = (uint64_t)n;
+    return (uint8_t*)((x + (pow2 - 1)) & -pow2);
 
     // Alternative formula:
-    //return (u8*)(x + (-x & (pow2 - 1)));
+    //return (uint8_t*)(x + (-x & (pow2 - 1)));
 }
 
 Arena arena_alloc() {
@@ -101,27 +101,28 @@ void arena_free(Arena *arena) {
         vm_free_pages(arena->_memory_start, arena->_capacity);
     }
 
-    *arena = {};
+    Arena zero = {};
+    *arena = zero;
 }
 
-void *arena_push(Arena *arena, u64 size) {
+void *arena_push(Arena *arena, uint64_t size) {
     void *memory = arena_push_nozero(arena, size);
     memset(memory, 0, size);
     return memory;
 }
 
-void *arena_push_nozero(Arena *arena, u64 size) {
+void *arena_push_nozero(Arena *arena, uint64_t size) {
     assert(arena->_position <= arena->_memory_start + arena->_capacity);
 
-    u8 *pos_start = arena->_position;
-    u8 *pos_aligned = pos_start; // @TODO: align memory
-    u8 *pos_end = pos_aligned + size;
+    uint8_t *pos_start = arena->_position;
+    uint8_t *pos_aligned = pos_start; // @TODO: align memory
+    uint8_t *pos_end = pos_aligned + size;
 
-    bool arena_ran_out_of_memory = pos_end > arena->_memory_start + arena->_capacity;
+    uint8_t arena_ran_out_of_memory = pos_end > arena->_memory_start + arena->_capacity;
     if (arena_ran_out_of_memory) {
-        u64 total_size = pos_end - pos_start;
-        u64 padding_size = pos_aligned - pos_start;
-        u64 memory_left = arena->_capacity - (arena->_position - arena->_memory_start);
+        uint64_t total_size = pos_end - pos_start;
+        uint64_t padding_size = pos_aligned - pos_start;
+        uint64_t memory_left = arena->_capacity - (arena->_position - arena->_memory_start);
         fprintf(
             stderr,
             "Arena ran out of memory. Requested %zu bytes to reserve (%zu bytes for padding + %zu bytes for the data), but arena has only %zu bytes left.\n",
@@ -134,9 +135,9 @@ void *arena_push_nozero(Arena *arena, u64 size) {
     }
 
     // If memory reservation crosses a page boundary it needs to commit as many memory pages as needed
-    u8 *next_reserved_page = round_up_mult_pow2(pos_end, arena->_page_size);
+    uint8_t *next_reserved_page = round_up_mult_pow2(pos_end, arena->_page_size);
     if (next_reserved_page > arena->_next_reserved_page) {
-        u64 size = pos_end - arena->_next_reserved_page;
+        uint64_t size = pos_end - arena->_next_reserved_page;
         vm_commit_pages(arena->_next_reserved_page, size);
         arena->_next_reserved_page = next_reserved_page;
     }
@@ -145,15 +146,15 @@ void *arena_push_nozero(Arena *arena, u64 size) {
     return pos_aligned;
 }
 
-u64  arena_get_capacity(Arena *arena) {
+uint64_t  arena_get_capacity(Arena *arena) {
     return arena->_capacity;
 }
 
-u64 arena_get_pos(Arena *arena) {
+uint64_t arena_get_pos(Arena *arena) {
     return arena->_position - arena->_memory_start;
 }
 
-void arena_set_pos(Arena *arena, u64 pos) {
+void arena_set_pos(Arena *arena, uint64_t pos) {
     assert(pos <= arena->_capacity);
     arena->_position = arena->_memory_start + pos;
 }

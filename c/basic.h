@@ -59,8 +59,8 @@ typedef double f64;
 #define CLAMP(val, min, max) (MIN(MAX(val, min), max))
 #define ABS(val) (val >= 0 ? val : -val)
 
-#define STRING_TO_BUFFER(string) Buffer{ .data = (u8*) string.data, .length = string.length }
-#define BUFFER_TO_STRING(buffer) String{ .data = (const u8*) buffer.data, .length = buffer.length }
+#define STRING_TO_BUFFER(string) (Buffer){ .data = (u8*) string.data, .length = string.length }
+#define BUFFER_TO_STRING(buffer) (String){ .data = (const u8*) buffer.data, .length = buffer.length }
 
 // ####################################################################################################################
 // Buffer
@@ -69,7 +69,7 @@ typedef struct {
     u64 length;
 } Buffer;
 
-#define BUFFER_FROM_ARRAY(array) Buffer{ (u8*)array, sizeof(array) }
+#define BUFFER_FROM_ARRAY(array) (Buffer){ .data = (u8*)array, .length = sizeof(array) }
 
 // Slice
 Buffer buffer_slice(Buffer buf, u64 start, u64 end);
@@ -117,7 +117,7 @@ typedef struct {
     u64 length;
 } String;
 
-#define S(string) String{ (u8*)string, ARRAY_LENGTH(string)-1 }
+#define S(string) (String){ .data = (u8*)string, .length = ARRAY_LENGTH(string)-1 }
 
 // Converts C-string into String
 String      string_from_cstring(const char *str);

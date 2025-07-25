@@ -1,6 +1,9 @@
 #CXX = x86_64-w64-mingw32-g++
 CXX = g++
+
 CXXFLAGS = -g -Wall -Wextra
+#CXXFLAGS = -x c++ -std=c++11 -g -Wall -Wextra
+
 CC = $(CXX)
 
 all: basic_test arena_test
