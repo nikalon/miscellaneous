@@ -144,6 +144,8 @@ bool read_entire_file(Arena *arena, String file_name, Buffer *out_file_buffer) {
     assert(arena != 0);
     assert(out_file_buffer != 0);
 
+    u64 arena_original_pos = arena_get_pos(arena);
+
     // @TODO: Enable longer paths in Windows
 #if 0
     // Disable MAX_PATH for Windows
@@ -287,6 +289,9 @@ bool read_entire_file(Arena *arena, String file_name, Buffer *out_file_buffer) {
     if (ok) {
         out_file_buffer->data = file_buffer;
         out_file_buffer->length = file_size;
+    } else {
+        // Failed to read file. Deallocate any memory used.
+        arena_set_pos(arena, arena_original_pos);
     }
 
     return ok;

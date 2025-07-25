@@ -353,16 +353,23 @@ static const char *test_string_concat_something_with_empty(Arena *arena) {
 
 static const char *test_read_entire_file(Arena *arena) {
     u64 file_size = 44;
+    u64 arena_pos_before_reading_file = arena_get_pos(arena);
+
     // @NOTE: The file test_file.txt must exist and must contain exactly the following sentence:
     String expected = S("The quick brown fox jumps over the lazy dog.");
 
     Buffer file_buffer = {};
     bool ret = read_entire_file(arena, S("test_file.txt"), &file_buffer);
 
+    u64 areana_pos_after_reading_file = arena_get_pos(arena);
     String file_buffer_str = BUFFER_TO_STRING(file_buffer);
     assert(ret);
     assert(file_buffer.length == file_size);
     assert(string_equals(file_buffer_str, expected));
+
+    // read_entire_file() should've allocated at least the necessary memory to store the file in memory
+    assert(areana_pos_after_reading_file > arena_pos_before_reading_file);
+    assert(areana_pos_after_reading_file - arena_pos_before_reading_file >= file_size);
 
     return __func__;
 }
@@ -370,12 +377,17 @@ static const char *test_read_entire_file(Arena *arena) {
 static const char *test_read_entire_file_does_not_exist(Arena *arena) {
     // @NOTE: The file test_file_does_not_exist.txt must not exist in the workspace!
     u64 file_size = 44;
+    u64 arena_pos_before_reading_file = arena_get_pos(arena);
 
     Buffer file_buffer = {};
     bool ret = read_entire_file(arena, S("test_file_does_not_exist.txt"), &file_buffer);
 
     assert(ret == false);
     assert(file_buffer.length == 0);
+
+    // If read_entire_file() fails it should deallocate any memory used
+    u64 arena_pos_after_reading_file = arena_get_pos(arena);
+    assert(arena_pos_after_reading_file == arena_pos_before_reading_file);
 
     return __func__;
 }
