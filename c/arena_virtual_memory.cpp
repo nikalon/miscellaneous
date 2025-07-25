@@ -65,7 +65,7 @@ static uint64_t get_page_size() {
 #ifdef _WIN32
     SYSTEM_INFO sysinfo;
     GetSystemInfo(&sysinfo);
-    return (uint64_t)sysinfo.dwAllocationGranularity;
+    return (uint64_t)sysinfo.dwPageSize;
 #elif __linux__
     // @NOTE: "Portable applications should employ sysconf(_SC_PAGESIZE) instead of getpagesize()". Source: man 2 getpagesize
     uint64_t page_size = (uint64_t)sysconf(_SC_PAGESIZE);
