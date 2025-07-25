@@ -145,20 +145,14 @@ bool read_entire_file(Arena *arena, String file_name, Buffer *out_file_buffer) {
     assert(out_file_buffer != 0);
 
     u64 arena_original_pos = arena_get_pos(arena);
-
-    // @TODO: Enable longer paths in Windows
-#if 0
-    // Disable MAX_PATH for Windows
-    file_name = string_concat(arena, S("\\\\?\\"), file_name);
-#endif
     const char *file_name_cstr = string_to_cstring(arena, file_name);
 
     bool ok = true;
     u8 *file_buffer = 0;
     u64 file_size = 0;
 
-    // @TODO: Fix Windows version
-#if 0
+#if _WIN32
+    // @TODO: Enable longer paths in Windows
     // @NOTE: According to the Microsoft documentation "[OpenFile] has limited capabilities and is not recommended. For
     // new application development, use the CreateFile function."
     // Source (24/07/2025): https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-openfile?source=recommendations
