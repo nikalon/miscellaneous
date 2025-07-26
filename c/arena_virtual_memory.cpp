@@ -112,6 +112,7 @@ void *arena_push(Arena *arena, uint64_t size) {
 }
 
 void *arena_push_nozero(Arena *arena, uint64_t size) {
+    assert(size > 0);
     assert(arena->_position <= arena->_memory_start + arena->_capacity);
 
     uint8_t *pos_start = arena->_position;

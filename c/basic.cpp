@@ -127,9 +127,12 @@ String string_concat(Arena *arena, String a, String b) {
     assert(arena != 0);
 
     u64 length = a.length + b.length;
-    u8 *data = arena_push_array(arena, u8, length);
-    memcpy(data, a.data, a.length);
-    memcpy(data + a.length, b.data, b.length);
+    u8 *data = 0;
+    if (length > 0) {
+        data = arena_push_array(arena, u8, length);
+        memcpy(data, a.data, a.length);
+        memcpy(data + a.length, b.data, b.length);
+    }
 
     String ret = {
         .data = data,
