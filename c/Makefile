@@ -1,8 +1,16 @@
 #CXX = x86_64-w64-mingw32-g++
 CXX = g++
 
-CXXFLAGS = -g -Wall -Wextra
-#CXXFLAGS = -x c++ -std=c++11 -g -Wall -Wextra
+# Explanation of some compiler arguments, which are paraphrased or copied straight from the GCC manual.
+# - Wshadow         warns about declaring variables with the same name as another variable in the current scope.
+# - Wpointer-arith  warns about using the operator sizeof with (void*), functions and using NULL as arithmetic operations for pointers.
+# - Wcast-qual      warns about casts that remove type qualifier (for example, casting (const char*) to (char*).
+# - Wcast-align     warns whenever a pointer is cast such that the required alignment of the target is increased (for example, casting from (char*) to (int*)).
+COMMON_COMPILER_FLAGS = -g -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-qual -Wcast-align
+CXXFLAGS = $(COMMON_COMPILER_FLAGS)
+
+#Uncomment to compile with C
+#CXXFLAGS = -x c $(COMMON_COMPILER_FLAGS)
 
 CC = $(CXX)
 

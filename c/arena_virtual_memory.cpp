@@ -138,8 +138,8 @@ void *arena_push_nozero(Arena *arena, uint64_t size) {
     // If memory reservation crosses a page boundary it needs to commit as many memory pages as needed
     uint8_t *next_reserved_page = round_up_mult_pow2(pos_end, arena->_page_size);
     if (next_reserved_page > arena->_next_reserved_page) {
-        uint64_t size = pos_end - arena->_next_reserved_page;
-        vm_commit_pages(arena->_next_reserved_page, size);
+        uint64_t size_from_last_page = pos_end - arena->_next_reserved_page;
+        vm_commit_pages(arena->_next_reserved_page, size_from_last_page);
         arena->_next_reserved_page = next_reserved_page;
     }
 

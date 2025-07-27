@@ -59,7 +59,6 @@ typedef double f64;
 #define CLAMP(val, min, max) (MIN(MAX(val, min), max))
 #define ABS(val) (val >= 0 ? val : -val)
 
-#define STRING_TO_BUFFER(string) (Buffer){ .data = (u8*) string.data, .length = string.length }
 #define BUFFER_TO_STRING(buffer) (String){ .data = (const u8*) buffer.data, .length = buffer.length }
 
 // ####################################################################################################################
@@ -117,7 +116,7 @@ typedef struct {
     u64 length;
 } String;
 
-#define S(string) (String){ .data = (u8*)string, .length = ARRAY_LENGTH(string)-1 }
+#define S(string) (String){ .data = (const u8*)string, .length = ARRAY_LENGTH(string)-1 }
 
 // Converts C-string into String
 String      string_from_cstring(const char *str);

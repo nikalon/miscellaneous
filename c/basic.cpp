@@ -71,6 +71,7 @@ bool buffer_read_nocopy(Buffer *inBuffer, Buffer *outBuffer, u64 count) {
 }
 
 Buffer buffer_slice(Buffer buf, u64 start, u64 end) {
+    // @NOTE: reference function that is copy-pasted in string_slice()
     u64 actual_start = MIN(start, buf.length);
     u64 actual_end = CLAMP(end, actual_start, buf.length);
     u64 length = actual_end - actual_start;
@@ -85,7 +86,7 @@ Buffer buffer_slice(Buffer buf, u64 start, u64 end) {
 // String
 String string_from_cstring(const char *str) {
     String ret = {
-        (u8*)str,
+        (const u8*)str,
         (u64)strlen(str)
     };
     return ret;
@@ -104,7 +105,14 @@ bool string_equals(String a, String b) {
 }
 
 String string_slice(String str, u64 start, u64 end) {
-    String ret = BUFFER_TO_STRING(buffer_slice(STRING_TO_BUFFER(str), start, end));
+    // @NOTE: Copy-pasted from buffer_slice()
+    u64 actual_start = MIN(start, str.length);
+    u64 actual_end = CLAMP(end, actual_start, str.length);
+    u64 length = actual_end - actual_start;
+    String ret = {
+        str.data + actual_start,
+        length
+    };
     return ret;
 }
 
