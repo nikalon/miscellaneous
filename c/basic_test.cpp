@@ -1,14 +1,25 @@
-// @TODO: Print failed tests instead of aborting the program
-
 #include <assert.h>
+#include <setjmp.h>
+#include <signal.h>
 #include <stdio.h>
 #include <string.h>
 
+#ifdef _WIN32
+#include <io.h>
+#elif __linux__
+#include <unistd.h>
+#endif
+
 #include "basic.h"
 
-typedef const char* (*TestFunction)(Arena*);
+#define TEST(function_name) (Test){ #function_name, function_name }
 
-static const char *test_buffer_read_u8(Arena *arena) {
+typedef struct {
+    const char *test_name;
+    void (*test_function)(Arena*);
+} Test;
+
+static void test_buffer_read_u8(Arena *arena) {
     UNUSED(arena);
 
     u8 b[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
@@ -26,11 +37,9 @@ static const char *test_buffer_read_u8(Arena *arena) {
     }
 
     assert(buffer.length == 0);
-
-    return __func__;
 }
 
-static const char *test_buffer_read_u32(Arena *arena) {
+static void test_buffer_read_u32(Arena *arena) {
     UNUSED(arena);
 
     u32 b[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
@@ -48,11 +57,9 @@ static const char *test_buffer_read_u32(Arena *arena) {
     }
 
     assert(buffer.length == 0);
-
-    return __func__;
 }
 
-static const char *test_buffer_read_count_with_less_data_left(Arena *arena) {
+static void test_buffer_read_count_with_less_data_left(Arena *arena) {
     UNUSED(arena);
 
     u8 b[1] = { 42 };
@@ -65,11 +72,9 @@ static const char *test_buffer_read_count_with_less_data_left(Arena *arena) {
     assert(!success);
     assert(num == 0);
     assert(buffer.length == 0);
-
-    return __func__;
 }
 
-static const char *test_buffer_read_nocopy(Arena *arena) {
+static void test_buffer_read_nocopy(Arena *arena) {
     UNUSED(arena);
 
     u8 b[8] = { 1, 2, 3, 4, 5, 6, 7, 8 };
@@ -105,11 +110,9 @@ static const char *test_buffer_read_nocopy(Arena *arena) {
     assert(!ok);
     assert(in.length == 0);
     assert(out.length == 0);
-
-    return __func__;
 }
 
-static const char *test_string_from_cstring(Arena *arena) {
+static void test_string_from_cstring(Arena *arena) {
     UNUSED(arena);
 
     const char *a = "foo"; // len = 3
@@ -120,11 +123,9 @@ static const char *test_string_from_cstring(Arena *arena) {
 
     assert(c.length == 3);
     assert(d.length == 5);
-
-    return __func__;
 }
 
-static const char *test_string_from_cstring_equality(Arena *arena) {
+static void test_string_from_cstring_equality(Arena *arena) {
     UNUSED(arena);
 
     const char *a = "foo";
@@ -135,33 +136,27 @@ static const char *test_string_from_cstring_equality(Arena *arena) {
 
     assert(string_equals(c, S("foo")));
     assert(string_equals(d, S("bar")));
-
-    return __func__;
 }
 
-static const char *test_string_to_cstring(Arena *arena) {
+static void test_string_to_cstring(Arena *arena) {
     String a = S("The quick brown fox");
     const char *ret = string_to_cstring(arena, a);
     const char *expected = "The quick brown fox";
 
     assert(strlen(expected) == 19);
     assert(strncmp(ret, expected, 19) == 0);
-
-    return __func__;
 }
 
-static const char *test_string_to_cstring_empty(Arena *arena) {
+static void test_string_to_cstring_empty(Arena *arena) {
     String a = S("");
     const char *ret = string_to_cstring(arena, a);
     const char *expected = "";
 
     assert(strlen(expected) == 0);
     assert(strncmp(ret, expected, 0) == 0);
-
-    return __func__;
 }
 
-static const char *test_string_equality(Arena *arena) {
+static void test_string_equality(Arena *arena) {
     UNUSED(arena);
 
     String a = S("Foo");
@@ -171,11 +166,9 @@ static const char *test_string_equality(Arena *arena) {
     assert(! string_equals(a, b));
     assert(! string_equals(a, c));
     assert(string_equals(a, a));
-
-    return __func__;
 }
 
-static const char *test_string_slice(Arena *arena) {
+static void test_string_slice(Arena *arena) {
     UNUSED(arena);
 
     String sentence = S("The quick brown fox jumps over the lazy dog");
@@ -249,11 +242,9 @@ static const char *test_string_slice(Arena *arena) {
 
     slice = string_slice(sentence, 3, 3);
     assert(slice.length == 0);
-    assert(string_equals(slice, S("")));
-    return __func__;
 }
 
-static const char *test_string_starts_with(Arena *arena) {
+static void test_string_starts_with(Arena *arena) {
     UNUSED(arena);
 
     String sentence = S("The quick brown fox");
@@ -266,11 +257,9 @@ static const char *test_string_starts_with(Arena *arena) {
     assert(string_starts_with(sentence, b));
     assert(string_starts_with(sentence, c));
     assert(! string_starts_with(sentence, d));
-
-    return __func__;
 }
 
-static const char *test_string_ends_with(Arena *arena) {
+static void test_string_ends_with(Arena *arena) {
     UNUSED(arena);
 
     String sentence = S("quick brown fox");
@@ -283,11 +272,9 @@ static const char *test_string_ends_with(Arena *arena) {
     assert(string_ends_with(sentence, b));
     assert(string_ends_with(sentence, c));
     assert(! string_ends_with(sentence, d));
-
-    return __func__;
 }
 
-static const char *test_string_concat(Arena *arena) {
+static void test_string_concat(Arena *arena) {
     String a = S("The quick");
     String b = S(" brown fox");
     String ret = string_concat(arena, a, b);
@@ -299,11 +286,9 @@ static const char *test_string_concat(Arena *arena) {
     // Check string correctness
     assert(ret.length == 19);
     assert(string_equals(ret, expected));
-
-    return __func__;
 }
 
-static const char *test_string_concat_empty_strings(Arena *arena) {
+static void test_string_concat_empty_strings(Arena *arena) {
     String a = S("");
     String b = S("");
     String ret = string_concat(arena, a, b);
@@ -315,11 +300,9 @@ static const char *test_string_concat_empty_strings(Arena *arena) {
     // Check string correctness
     assert(ret.length == 0);
     assert(string_equals(ret, expected));
-
-    return __func__;
 }
 
-static const char *test_string_concat_empty_with_something(Arena *arena) {
+static void test_string_concat_empty_with_something(Arena *arena) {
     String a = S("");
     String b = S("quick brown fox");
     String ret = string_concat(arena, a, b);
@@ -331,11 +314,9 @@ static const char *test_string_concat_empty_with_something(Arena *arena) {
     // Check string correctness
     assert(ret.length == 15);
     assert(string_equals(ret, expected));
-
-    return __func__;
 }
 
-static const char *test_string_concat_something_with_empty(Arena *arena) {
+static void test_string_concat_something_with_empty(Arena *arena) {
     String a = S("The quick");
     String b = S("");
     String ret = string_concat(arena, a, b);
@@ -347,11 +328,9 @@ static const char *test_string_concat_something_with_empty(Arena *arena) {
     // Check string correctness
     assert(ret.length == 9);
     assert(string_equals(ret, expected));
-
-    return __func__;
 }
 
-static const char *test_read_entire_file(Arena *arena) {
+static void test_read_entire_file(Arena *arena) {
     u64 file_size = 44;
     u64 arena_pos_before_reading_file = arena_get_pos(arena);
 
@@ -370,11 +349,9 @@ static const char *test_read_entire_file(Arena *arena) {
     // read_entire_file() should've allocated at least the necessary memory to store the file in memory
     assert(areana_pos_after_reading_file > arena_pos_before_reading_file);
     assert(areana_pos_after_reading_file - arena_pos_before_reading_file >= file_size);
-
-    return __func__;
 }
 
-static const char *test_read_entire_file_does_not_exist(Arena *arena) {
+static void test_read_entire_file_does_not_exist(Arena *arena) {
     // @NOTE: The file test_file_does_not_exist.txt must not exist in the workspace!
     u64 arena_pos_before_reading_file = arena_get_pos(arena);
 
@@ -387,45 +364,88 @@ static const char *test_read_entire_file_does_not_exist(Arena *arena) {
     // If read_entire_file() fails it should deallocate any memory used
     u64 arena_pos_after_reading_file = arena_get_pos(arena);
     assert(arena_pos_after_reading_file == arena_pos_before_reading_file);
-
-    return __func__;
 }
 
-static TestFunction tests[] = {
-    test_buffer_read_u8,
-    test_buffer_read_u32,
-    test_buffer_read_count_with_less_data_left,
-    test_buffer_read_nocopy,
-    test_string_from_cstring,
-    test_string_from_cstring_equality,
-    test_string_to_cstring,
-    test_string_to_cstring_empty,
-    test_string_equality,
-    test_string_slice,
-    test_string_starts_with,
-    test_string_ends_with,
-    test_string_concat,
-    test_string_concat_empty_strings,
-    test_string_concat_empty_with_something,
-    test_string_concat_something_with_empty,
-    test_read_entire_file,
-    test_read_entire_file_does_not_exist,
+static Test tests[] = {
+    TEST(test_buffer_read_u8),
+    TEST(test_buffer_read_u32),
+    TEST(test_buffer_read_count_with_less_data_left),
+    TEST(test_buffer_read_nocopy),
+    TEST(test_string_from_cstring),
+    TEST(test_string_from_cstring_equality),
+    TEST(test_string_to_cstring),
+    TEST(test_string_to_cstring_empty),
+    TEST(test_string_equality),
+    TEST(test_string_slice),
+    TEST(test_string_starts_with),
+    TEST(test_string_ends_with),
+    TEST(test_string_concat),
+    TEST(test_string_concat_empty_strings),
+    TEST(test_string_concat_empty_with_something),
+    TEST(test_string_concat_something_with_empty),
+    TEST(test_read_entire_file),
+    TEST(test_read_entire_file_does_not_exist),
 };
+
+static jmp_buf jump_buffer;
+
+void test_abort_handler(int signal) {
+    if (signal == SIGABRT) {
+        // We receive this signal when a condition hasn't been met in an assertion. This signal can also be sent from other
+        // sources but for simplicity we consider every SIGABRT signal as sent from abort() when its condition fails.
+        longjmp(jump_buffer, 1);
+    }
+}
+
+b32 can_print_colors() {
+    // @TODO: Implement complete logic defined in https://bixense.com/clicolors/
+    const int __STDOUT = 1;
+
+#ifdef _WIN32
+    return _isatty(__STDOUT);
+#elif __linux__
+    return isatty(__STDOUT);
+#else
+    return false;
+#endif
+}
 
 int main(void) {
     // Arena used for every individual test
     Arena arena_test = arena_alloc();
 
+    u64 tests_passed = 0;
+    signal(SIGABRT, test_abort_handler);
     printf("=== %s ===\n", __FILE__);
+
     for (size_t i = 0; i < ARRAY_LENGTH(tests); i++) {
         assert(arena_get_pos(&arena_test) == 0 && "arena_test must be completely empty before starting a new test");
+        const char *test_result = 0;
+        const char *test_name = tests[i].test_name;
 
-        const char *test_name = tests[i](&arena_test);
-        printf("[OK] %s\n", test_name);
+        if (setjmp(jump_buffer) == 0) {
+            tests[i].test_function(&arena_test);
+
+            // If execution reaches this point it means that no SIGABRT signal has been raised during the test, meaning
+            // that all assertions passed. This test is considered as passed.
+            tests_passed += 1;
+            test_result = can_print_colors() ? "\x1b[1;32mOK\x1b[0m" : "OK";
+        } else {
+            // If execution reaches this point it means that a SIGABRT signal has been raised, most likely by an assertion.
+            // This test is considered as failed.
+            test_result = can_print_colors() ? "\x1b[1;31mKO\x1b[0m" : "KO";
+        }
+
+        printf("[%s] %s\n", test_result, test_name);
         arena_clear(&arena_test);
     }
 
     arena_free(&arena_test);
-    printf("\n%zu tests passed\n", ARRAY_LENGTH(tests));
-    return 0;
+    printf("\n%zu/%zu tests passed\n", tests_passed, ARRAY_LENGTH(tests));
+
+    int errcode = 0;
+    if (tests_passed != ARRAY_LENGTH(tests)) {
+        errcode = 1;
+    }
+    return errcode;
 }
