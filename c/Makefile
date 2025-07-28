@@ -5,8 +5,7 @@ CXX = g++
 # - Wshadow         warns about declaring variables with the same name as another variable in the current scope.
 # - Wpointer-arith  warns about using the operator sizeof with (void*), functions and using NULL as arithmetic operations for pointers.
 # - Wcast-qual      warns about casts that remove type qualifier (for example, casting (const char*) to (char*).
-# - Wcast-align     warns whenever a pointer is cast such that the required alignment of the target is increased (for example, casting from (char*) to (int*)).
-COMMON_COMPILER_FLAGS = -g -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-qual -Wcast-align
+COMMON_COMPILER_FLAGS = -g -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-qual
 CXXFLAGS = $(COMMON_COMPILER_FLAGS)
 
 #Uncomment to compile with C
