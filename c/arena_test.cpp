@@ -1,21 +1,11 @@
 // @TODO: Print failed tests instead of aborting the program
 
 #include <assert.h>
-#include <stdio.h>
 #include <string.h>
-
-#ifdef _WIN32
-    #define _WIN32_LEAN_AND_MEAN
-    #include <windows.h>
-#elif __linux__
-    #include <sys/mman.h>
-    #include <unistd.h>
-#endif
 
 #include "basic.h"
 #include "arena.h"
-
-typedef const char* (*TestFunction)(void);
+#include "test_suite.cpp"
 
 #define FILL_ARRAY_WITH_GARBAGE(array, length) memset(array, 255, length);
 
@@ -38,7 +28,8 @@ static u64 get_page_size() {
 #endif
 }
 
-static const char *test_push_for_primitive_types() {
+static void test_push_for_primitive_types(void *context) {
+    UNUSED(context);
     Arena arena = arena_alloc();
     u8  *a = arena_push_type(&arena, u8);
     *a = 255;
@@ -52,16 +43,16 @@ static const char *test_push_for_primitive_types() {
     u64 *d = arena_push_type(&arena, u64);
     *d = 1234567890;
 
-    assert(*a == 255);
-    assert(*b == 1111);
-    assert(*c == 123456);
-    assert(*d == 1234567890);
+    EXPECT(*a == 255);
+    EXPECT(*b == 1111);
+    EXPECT(*c == 123456);
+    EXPECT(*d == 1234567890);
 
     arena_free(&arena);
-    return __func__;
 }
 
-static const char *test_push_and_clear_for_primitive_types() {
+static void test_push_and_clear_for_primitive_types(void *context) {
+    UNUSED(context);
     Arena arena = arena_alloc();
     u8  *a = arena_push_type(&arena, u8);
     *a = 255;
@@ -75,10 +66,10 @@ static const char *test_push_and_clear_for_primitive_types() {
     u64 *d = arena_push_type(&arena, u64);
     *d = 1234567890;
 
-    assert(*a == 255);
-    assert(*b == 1111);
-    assert(*c == 123456);
-    assert(*d == 1234567890);
+    EXPECT(*a == 255);
+    EXPECT(*b == 1111);
+    EXPECT(*c == 123456);
+    EXPECT(*d == 1234567890);
 
     // Clear all memory and starts pushing new values into the arena
     arena_clear(&arena);
@@ -95,16 +86,16 @@ static const char *test_push_and_clear_for_primitive_types() {
     u64 *h = arena_push_type(&arena, u64);
     *d = 4739204;
 
-    assert(*e == 55);
-    assert(*f == 3412);
-    assert(*g == 37489);
-    assert(*h == 4739204);
+    EXPECT(*e == 55);
+    EXPECT(*f == 3412);
+    EXPECT(*g == 37489);
+    EXPECT(*h == 4739204);
 
     arena_free(&arena);
-    return __func__;
 }
 
-static const char *test_reserve_arrays() {
+static void test_reserve_arrays(void *context) {
+    UNUSED(context);
     size_t array_size = 4096;
 
     Arena arena = arena_alloc();
@@ -128,20 +119,20 @@ static const char *test_reserve_arrays() {
     d[0] = 103;
     d[array_size - 1] = 253;
 
-    assert(a[0] == 100);
-    assert(a[array_size - 1] == 250);
-    assert(b[0] == 101);
-    assert(b[array_size - 1] == 251);
-    assert(c[0] == 102);
-    assert(c[array_size - 1] == 252);
-    assert(d[0] == 103);
-    assert(d[array_size - 1] == 253);
+    EXPECT(a[0] == 100);
+    EXPECT(a[array_size - 1] == 250);
+    EXPECT(b[0] == 101);
+    EXPECT(b[array_size - 1] == 251);
+    EXPECT(c[0] == 102);
+    EXPECT(c[array_size - 1] == 252);
+    EXPECT(d[0] == 103);
+    EXPECT(d[array_size - 1] == 253);
 
     arena_free(&arena);
-    return __func__;
 }
 
-const char* test_reserve_primitive_types_and_arrays() {
+void test_reserve_primitive_types_and_arrays(void *context) {
+    UNUSED(context);
     size_t array_size = 4096;
 
     Arena arena = arena_alloc();
@@ -177,32 +168,32 @@ const char* test_reserve_primitive_types_and_arrays() {
     h[0] = 103;
     h[array_size - 1] = 253;
 
-    assert(*a == 255);
+    EXPECT(*a == 255);
 
-    assert(b[0] == 100);
-    assert(b[array_size - 1] == 250);
+    EXPECT(b[0] == 100);
+    EXPECT(b[array_size - 1] == 250);
 
-    assert(*c == 1111);
+    EXPECT(*c == 1111);
 
-    assert(d[0] == 101);
-    assert(d[array_size - 1] == 251);
+    EXPECT(d[0] == 101);
+    EXPECT(d[array_size - 1] == 251);
 
-    assert(*e == 123456);
+    EXPECT(*e == 123456);
 
-    assert(f[0] == 102);
-    assert(f[array_size - 1] == 252);
+    EXPECT(f[0] == 102);
+    EXPECT(f[array_size - 1] == 252);
 
-    assert(*g == 1234567890);
+    EXPECT(*g == 1234567890);
 
-    assert(h[0] == 103);
-    assert(h[array_size - 1] == 253);
+    EXPECT(h[0] == 103);
+    EXPECT(h[array_size - 1] == 253);
 
 
     arena_free(&arena);
-    return __func__;
 }
 
-static const char* test_reserve_arrays_of_page_size_until_maximum_capacity() {
+static void  test_reserve_arrays_of_page_size_until_maximum_capacity(void *context) {
+    UNUSED(context);
     u64 page_size = get_page_size();
     Arena arena = arena_alloc();
     size_t max_pages_to_commit = ceil_div(arena_get_capacity(&arena), page_size);
@@ -216,10 +207,10 @@ static const char* test_reserve_arrays_of_page_size_until_maximum_capacity() {
     }
 
     arena_free(&arena);
-    return __func__;
 }
 
-static const char* test_arena_capacity_limit() {
+static void  test_arena_capacity_limit(void *context) {
+    UNUSED(context);
     Arena arena = arena_alloc();
 
     u8 *one_gigabyte;
@@ -230,24 +221,24 @@ static const char* test_arena_capacity_limit() {
     }
 
     arena_free(&arena);
-    return __func__;
 }
 
-static const char* test_push_must_be_zero() {
+static void test_push_must_be_zero(void *context) {
+    UNUSED(context);
     Arena arena = arena_alloc();
 
     {
         u8 *a = arena_push_type(&arena, u8);
-        assert(*a == 0);
+        EXPECT(*a == 0);
 
         u16 *b = arena_push_type(&arena, u16);
-        assert(*b == 0);
+        EXPECT(*b == 0);
 
         u32 *c = arena_push_type(&arena, u32);
-        assert(*c == 0);
+        EXPECT(*c == 0);
 
         u64 *d = arena_push_type(&arena, u64);
-        assert(*d == 0);
+        EXPECT(*d == 0);
 
         size_t array_size = 5000;
         u8 *array = arena_push_array(&arena, u8, array_size);
@@ -266,41 +257,40 @@ static const char* test_push_must_be_zero() {
 
     {
         u8 *a = arena_push_type(&arena, u8);
-        assert(*a == 0);
+        EXPECT(*a == 0);
 
         u16 *b = arena_push_type(&arena, u16);
-        assert(*b == 0);
+        EXPECT(*b == 0);
 
         u32 *c = arena_push_type(&arena, u32);
-        assert(*c == 0);
+        EXPECT(*c == 0);
 
         u64 *d = arena_push_type(&arena, u64);
-        assert(*d == 0);
+        EXPECT(*d == 0);
 
         size_t array_size = 5000;
         u8 *array = arena_push_array(&arena, u8, array_size);
         for (size_t i = 0; i < array_size; i++) {
-            assert(array[i] == 0);
+            EXPECT(array[i] == 0);
         }
     }
 
     arena_free(&arena);
-    return __func__;
 }
 
-static const char* test_arena_free_invalidates_instance() {
+static void  test_arena_free_invalidates_instance(void *context) {
+    UNUSED(context);
     Arena arena = arena_alloc();
     arena_free(&arena);
 
     Arena arena_zero = {};
 
     // Check arena_free() zeroes out original instance
-    assert(memcmp(&arena, &arena_zero, sizeof(Arena)) == 0);
-
-    return __func__;
+    EXPECT(memcmp(&arena, &arena_zero, sizeof(Arena)) == 0);
 }
 
-static const char* test_get_set_position_and_clear() {
+static void  test_get_set_position_and_clear(void *context) {
+    UNUSED(context);
     Arena arena = arena_alloc();
 
     // Nothing pushed yet to the arena. We let the initial position be anything, not necessarily zero to provide some
@@ -309,45 +299,37 @@ static const char* test_get_set_position_and_clear() {
 
     arena_push_type(&arena, u8);
     u64 pos_after_initial_push = arena_get_pos(&arena);
-    assert(pos_after_initial_push > pos_start);
+    EXPECT(pos_after_initial_push > pos_start);
 
     arena_push_array_nozero(&arena, u32, 1024);
     u64 pos_after_pushing_array = arena_get_pos(&arena);
-    assert(pos_after_pushing_array > pos_start);
-    assert(pos_after_pushing_array > pos_after_initial_push);
+    EXPECT(pos_after_pushing_array > pos_start);
+    EXPECT(pos_after_pushing_array > pos_after_initial_push);
 
     // Test set position to pos_after_initial_push
     arena_set_pos(&arena, pos_after_initial_push);
-    assert(arena_get_pos(&arena) == pos_after_initial_push);
+    EXPECT(arena_get_pos(&arena) == pos_after_initial_push);
 
     // When we clear the arena we want the exact same position as the recently-allocated arena
     arena_clear(&arena);
     u64 pos_last = arena_get_pos(&arena);
-    assert(pos_last == pos_start);
+    EXPECT(pos_last == pos_start);
 
     arena_free(&arena);
-    return __func__;
 }
 
-static TestFunction tests[] = {
-    test_push_for_primitive_types,
-    test_push_and_clear_for_primitive_types,
-    test_push_must_be_zero,
-    test_reserve_arrays,
-    test_reserve_primitive_types_and_arrays,
-    test_arena_capacity_limit,
-    test_reserve_arrays_of_page_size_until_maximum_capacity,
-    test_arena_free_invalidates_instance,
-    test_get_set_position_and_clear,
-};
-
 int main(void) {
-    printf("=== %s ===\n", __FILE__);
-    for (size_t i = 0; i < ARRAY_LENGTH(tests); i++) {
-        const char *test_name = tests[i]();
-        printf("[OK] %s\n", test_name);
-    }
+    TestSuite suite = test_suite_new("arena.cpp");
+    TEST(&suite, test_push_for_primitive_types);
+    TEST(&suite, test_push_and_clear_for_primitive_types);
+    TEST(&suite, test_push_must_be_zero);
+    TEST(&suite, test_reserve_arrays);
+    TEST(&suite, test_reserve_primitive_types_and_arrays);
+    TEST(&suite, test_arena_capacity_limit);
+    TEST(&suite, test_reserve_arrays_of_page_size_until_maximum_capacity);
+    TEST(&suite, test_arena_free_invalidates_instance);
+    TEST(&suite, test_get_set_position_and_clear);
 
-    printf("\n%zu tests passed\n\n", ARRAY_LENGTH(tests));
-    return 0;
+    int errcode = test_suite_run_all_and_print(&suite);
+    return errcode;
 }
