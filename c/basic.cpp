@@ -1,18 +1,173 @@
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #ifdef _WIN32
-    #define _WIN32_LEAN_AND_MEAN
-    #include <windows.h>
+#    define _WIN32_LEAN_AND_MEAN
+#    include <windows.h>
 #elif __linux__
-    #include <fcntl.h>
-    #include <sys/stat.h>
-    #include <sys/types.h>
-    #include <unistd.h>
+#   include <fcntl.h>
+#   include <sys/mman.h>
+#   include <sys/stat.h>
+#   include <sys/types.h>
+#   include <unistd.h>
 #endif
 
 #include "basic.h"
+
+// ####################################################################################################################
+// Arena
+static u8* vm_reserve(uint64_t size) {
+#ifdef _WIN32
+    u8* memory = (u8*)VirtualAlloc(0, size, MEM_RESERVE, PAGE_READWRITE);
+    if (!memory) {
+        fprintf(stderr, "Failed to reserve memory for Arena\n");
+        abort();
+    }
+    return memory;
+#elif __linux__
+    u8* memory = (u8*)mmap(0, size, PROT_NONE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
+    if (memory == MAP_FAILED) {
+        fprintf(stderr, "Failed to reserve memory for Arena\n");
+        abort();
+    }
+    return memory;
+#else
+    #error "Not implemented for your platform"
+#endif
+}
+
+static void vm_commit_pages(u8 *start, uint64_t size) {
+#ifdef _WIN32
+    if (!VirtualAlloc(start, size, MEM_COMMIT, PAGE_READWRITE)) {
+        fprintf(stderr, "Failed to commit memory pages for Arena\n");
+        abort();
+    }
+#elif __linux__
+    if (mprotect(start, size, PROT_READ|PROT_WRITE) == -1) {
+        fprintf(stderr, "Failed to commit memory pages for Arena\n");
+        abort();
+    }
+#else
+    #error "Not implemented for your platform"
+#endif
+}
+
+static void vm_free_pages(u8 *start, uint64_t size) {
+    // Deallocate memory
+#ifdef _WIN32
+    (void)size;
+    VirtualFree(start, 0, MEM_RELEASE);
+#elif __linux__
+    munmap(start, size);
+#else
+    #error "Not implemented for your platform"
+#endif
+}
+
+static uint64_t get_page_size() {
+#ifdef _WIN32
+    SYSTEM_INFO sysinfo;
+    GetSystemInfo(&sysinfo);
+    return (uint64_t)sysinfo.dwPageSize;
+#elif __linux__
+    // @NOTE: "Portable applications should employ sysconf(_SC_PAGESIZE) instead of getpagesize()". Source: man 2 getpagesize
+    uint64_t page_size = (uint64_t)sysconf(_SC_PAGESIZE);
+    return page_size;
+#else
+    #error "Not implemented for your platform"
+#endif
+}
+
+Arena arena_alloc(u64 capacity_hint) {
+    Arena arena = {};
+    arena._page_size = get_page_size();
+    arena._capacity = (capacity_hint + (arena._page_size - 1)) & -arena._page_size;
+    arena._memory_start = vm_reserve(arena._capacity);
+    arena._position = arena._memory_start;
+    arena._next_reserved_page = arena._memory_start;
+
+    return arena;
+}
+
+void arena_free(Arena *arena) {
+    if (arena->_memory_start != 0) {
+        vm_free_pages(arena->_memory_start, arena->_capacity);
+    }
+
+    Arena zero = {};
+    *arena = zero;
+}
+
+void *arena_push_data(Arena *arena, u64 type_size, u64 count, u64 alignment, b32 zero_data) {
+    assert(arena->_position <= arena->_memory_start + arena->_capacity);
+
+    u64 size = type_size*count;
+    assert(size > 0);
+
+    u8 *pos_start = arena->_position;
+    u8 *pos_aligned = (u8*)(((u64)pos_start + (alignment - 1)) & -alignment);
+    u8 *pos_end = pos_aligned + size;
+
+    u8 arena_ran_out_of_memory = pos_end > arena->_memory_start + arena->_capacity;
+    if (arena_ran_out_of_memory) {
+        uint64_t total_size = pos_end - pos_start;
+        uint64_t padding_size = pos_aligned - pos_start;
+        uint64_t memory_left = arena->_capacity - (arena->_position - arena->_memory_start);
+        fprintf(
+            stderr,
+            "Arena ran out of memory. Requested %zu bytes to reserve (%zu bytes for padding + %zu bytes for the data), but arena has only %zu bytes left.\n",
+            total_size,
+            padding_size,
+            size,
+            memory_left
+        );
+        abort();
+    }
+
+    // If memory reservation crosses a page boundary it needs to commit as many memory pages as needed
+    u8 *next_reserved_page = (u8*)(((u64)pos_end + (arena->_page_size - 1)) & -arena->_page_size);
+    if (next_reserved_page > arena->_next_reserved_page) {
+        uint64_t size_from_last_page = pos_end - arena->_next_reserved_page;
+        vm_commit_pages(arena->_next_reserved_page, size_from_last_page);
+        arena->_next_reserved_page = next_reserved_page;
+    }
+
+    if (zero_data) {
+        memset(pos_aligned, 0, size);
+    }
+
+    arena->_position = pos_end;
+    return pos_aligned;
+}
+
+void *arena_grow_or_realloc(Arena *arena, void *prev_memory, u64 prev_size, u64 new_size) {
+    // @TODO:
+    UNUSED(arena);
+    UNUSED(prev_memory);
+    UNUSED(prev_size);
+    UNUSED(new_size);
+    abort();
+}
+
+uint64_t  arena_get_capacity(Arena *arena) {
+    return arena->_capacity;
+}
+
+uint64_t arena_get_pos(Arena *arena) {
+    return arena->_position - arena->_memory_start;
+}
+
+void arena_set_pos(Arena *arena, uint64_t pos) {
+    assert(pos <= arena->_capacity);
+    arena->_position = arena->_memory_start + pos;
+}
+
+void arena_clear(Arena *arena) {
+    // @TODO: Set a deallocation strategy
+    arena->_position = arena->_memory_start;
+}
 
 // ####################################################################################################################
 // Buffer
@@ -93,14 +248,14 @@ String string_from_cstring(const char *str) {
 }
 
 const char *string_to_cstring(Arena *arena, String str) {
-    char *ret = arena_push_array(arena, char, str.length + 1);
+    char *ret = arena_push(arena, char, str.length + 1);
     memcpy(ret, str.data, str.length);
     ret[str.length] = 0;
     return ret;
 }
 
 bool string_equals(String a, String b) {
-    bool equals = a.length == b.length && memcmp(a.data, b.data, a.length) == 0;
+    bool equals = a.length == b.length && (a.length == 0 || memcmp(a.data, b.data, a.length) == 0);
     return equals;
 }
 
@@ -137,7 +292,7 @@ String string_concat(Arena *arena, String a, String b) {
     u64 length = a.length + b.length;
     u8 *data = 0;
     if (length > 0) {
-        data = arena_push_array(arena, u8, length);
+        data = arena_push(arena, u8, length);
         memcpy(data, a.data, a.length);
         memcpy(data + a.length, b.data, b.length);
     }
@@ -196,7 +351,7 @@ bool read_entire_file(Arena *arena, String file_name, Buffer *out_file_buffer) {
     // Read the entire file into RAM
     if (ok) {
         file_size = (u64)li_file_size.QuadPart;
-        file_buffer = arena_push_array(arena, u8, file_size);
+        file_buffer = arena_push(arena, u8, file_size);
 
         u64 total_read = 0;
         while (total_read < file_size) {
@@ -238,7 +393,7 @@ bool read_entire_file(Arena *arena, String file_name, Buffer *out_file_buffer) {
     // Read the entire file into RAM
     if (ok) {
         file_size = (u64)st.st_size;
-        file_buffer = arena_push_array(arena, u8, file_size);
+        file_buffer = arena_push(arena, u8, file_size);
 
         u64 total_read = 0;
         while (total_read < file_size) {
@@ -272,7 +427,7 @@ bool read_entire_file(Arena *arena, String file_name, Buffer *out_file_buffer) {
         fseek(file, 0, SEEK_SET);
 
         // Read the entire file into RAM
-        file_buffer = arena_push_array(arena, u8, file_size);
+        file_buffer = arena_push(arena, u8, file_size);
         u64 total_read = 0;
         while (total_read < file_size) {
             u64 bytes_read = (u64) fread(file_buffer + total_read, 1, file_size - total_read, file);

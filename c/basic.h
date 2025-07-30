@@ -5,14 +5,14 @@
  *  - Primitive types
  *  - Buffers
  *  - Strings
+ *  - Arena and scratch arena
  *  - Basic file I/O
  *
  * Tests are defined in `basic_test.cpp`.
  * */
 
+#include <stdalign.h>
 #include <stdint.h>
-
-#include "arena.h"
 
 // ####################################################################################################################
 // Primitive types
@@ -60,6 +60,42 @@ typedef double f64;
 #define ABS(val) (val >= 0 ? val : -val)
 
 #define BUFFER_TO_STRING(buffer) (String){ .data = (const u8*) buffer.data, .length = buffer.length }
+
+// ====================================================================================================================
+// Arena
+typedef struct {
+    u8 *_memory_start;
+    u8 *_position;
+    u8 *_next_reserved_page;
+    u64 _capacity;
+    u64 _page_size;
+} Arena;
+
+Arena arena_alloc(u64 capacity_hint);
+void  arena_free(Arena *arena);
+
+// Push macros and functions. Use the following macros with some example arguments:
+// - arena_push(&arena, b16)
+// - arena_push(&arena, i32, 12)
+// - arena_push_nozero(&arena, MyStruct)
+// - arena_push_nozero(&arena, char, 30)
+#define GET_ARENA_PUSH_MACRO(_1, _2, _3, MACRO, ...) MACRO
+#define arena_push(...) GET_ARENA_PUSH_MACRO(__VA_ARGS__, arena_push_3, arena_push_2, arena_push_1)(__VA_ARGS__)
+#define arena_push_2(arena, type) (type*)arena_push_data(arena, sizeof(type), 1, alignof(type), 1)
+#define arena_push_3(arena, type, count) (type*)arena_push_data(arena, sizeof(type), count, alignof(type), 1)
+#define arena_push_nozero(...) GET_ARENA_PUSH_MACRO(__VA_ARGS__, arena_push_nozero_3, arena_push_nozero_2, arena_push_nozero_1)(__VA_ARGS__)
+#define arena_push_nozero_2(arena, type) (type*)arena_push_data(arena, sizeof(type), 1, alignof(type), 0)
+#define arena_push_nozero_3(arena, type, count) (type*)arena_push_data(arena, sizeof(type), count, alignof(type), 0)
+void *arena_push_data(Arena *arena, u64 type_size, u64 count, u64 alignment, b32 zero_data);
+
+// Grow the element pushed in the arena or reallocate it if there's not space left. It's discouraged to use this function
+// directly. Use any of the arena_push() or arena_push_nozero() macros instead.
+void *arena_grow_or_realloc(Arena *arena, void *prev_memory, u64 prev_size, u64 new_size);
+
+u64  arena_get_capacity(Arena *arena);
+u64  arena_get_pos(Arena *arena);
+void arena_set_pos(Arena *arena, u64 pos);
+void arena_clear(Arena *arena);
 
 // ####################################################################################################################
 // Buffer

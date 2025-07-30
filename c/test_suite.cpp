@@ -5,6 +5,11 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#ifdef _WIN32
+#    define _WIN32_LEAN_AND_MEAN
+#    include <io.h>
+#endif
+
 #define TEST_SUITE_MAX_TESTS 2048
 #define TEST(suite_ptr, test_func_name) test_suite_add_test(suite_ptr, #test_func_name, test_func_name)
 #define EXPECT(condition) if (!(condition)) raise(SIGABRT);
@@ -109,7 +114,7 @@ int test_suite_run_all_and_print(TestSuite *test_suite) {
     // any other way to do it without using global variables.
     active_test_suite = test_suite;
 
-    printf("=== %s (%lu tests) ===\n", test_suite->suite_name, test_suite->num_tests);
+    printf("=== %s (%zu tests) ===\n", test_suite->suite_name, test_suite->num_tests);
     size_t tests_passed = 0;
     for (size_t i = 0; i < test_suite->num_tests; i++) {
         if (test_suite->do_before_every_test_handler) {

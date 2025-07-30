@@ -375,7 +375,7 @@ int main(void) {
     TestSuite suite = test_suite_new(__FILE__);
 
     // Arena used for every individual test
-    Arena arena_test = arena_alloc();
+    Arena arena_test = arena_alloc(1*GiB);
     test_suite_set_context(&suite, &arena_test);
     test_suite_do_before_every_test(&suite, do_before_every_test_handler);
 
