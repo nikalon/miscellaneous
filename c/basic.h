@@ -90,7 +90,9 @@ void *arena_push_data(Arena *arena, u64 type_size, u64 count, u64 alignment, b32
 
 // Grow the element pushed in the arena or reallocate it if there's not space left. It's discouraged to use this function
 // directly. Use any of the arena_push() or arena_push_nozero() macros instead.
-void *arena_grow_or_realloc(Arena *arena, void *prev_memory, u64 prev_size, u64 new_size);
+#define arena_grow_in_place_or_realloc(arena, type, prev_memory, prev_count, new_count) \
+    (type*)arena_grow_in_place_or_realloc_impl(arena, prev_memory, sizeof(type)*prev_count, sizeof(type)*new_count, alignof(type))
+void *arena_grow_in_place_or_realloc_impl(Arena *arena, void *prev_memory, u64 prev_size, u64 new_size, u64 alignment);
 
 u64  arena_get_capacity(Arena *arena);
 u64  arena_get_pos(Arena *arena);

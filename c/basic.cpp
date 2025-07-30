@@ -18,7 +18,7 @@
 
 // ####################################################################################################################
 // Arena
-static u8* vm_reserve(uint64_t size) {
+static u8* vm_reserve(u64 size) {
 #ifdef _WIN32
     u8* memory = (u8*)VirtualAlloc(0, size, MEM_RESERVE, PAGE_READWRITE);
     if (!memory) {
@@ -38,7 +38,7 @@ static u8* vm_reserve(uint64_t size) {
 #endif
 }
 
-static void vm_commit_pages(u8 *start, uint64_t size) {
+static void vm_commit_pages(u8 *start, u64 size) {
 #ifdef _WIN32
     if (!VirtualAlloc(start, size, MEM_COMMIT, PAGE_READWRITE)) {
         fprintf(stderr, "Failed to commit memory pages for Arena\n");
@@ -54,7 +54,7 @@ static void vm_commit_pages(u8 *start, uint64_t size) {
 #endif
 }
 
-static void vm_free_pages(u8 *start, uint64_t size) {
+static void vm_free_pages(u8 *start, u64 size) {
     // Deallocate memory
 #ifdef _WIN32
     (void)size;
@@ -66,14 +66,14 @@ static void vm_free_pages(u8 *start, uint64_t size) {
 #endif
 }
 
-static uint64_t get_page_size() {
+static u64 get_page_size() {
 #ifdef _WIN32
     SYSTEM_INFO sysinfo;
     GetSystemInfo(&sysinfo);
-    return (uint64_t)sysinfo.dwPageSize;
+    return (u64)sysinfo.dwPageSize;
 #elif __linux__
     // @NOTE: "Portable applications should employ sysconf(_SC_PAGESIZE) instead of getpagesize()". Source: man 2 getpagesize
-    uint64_t page_size = (uint64_t)sysconf(_SC_PAGESIZE);
+    u64 page_size = (u64)sysconf(_SC_PAGESIZE);
     return page_size;
 #else
     #error "Not implemented for your platform"
@@ -102,6 +102,7 @@ void arena_free(Arena *arena) {
 
 void *arena_push_data(Arena *arena, u64 type_size, u64 count, u64 alignment, b32 zero_data) {
     assert(arena->_position <= arena->_memory_start + arena->_capacity);
+    assert(alignment >= 1);
 
     u64 size = type_size*count;
     assert(size > 0);
@@ -112,9 +113,9 @@ void *arena_push_data(Arena *arena, u64 type_size, u64 count, u64 alignment, b32
 
     u8 arena_ran_out_of_memory = pos_end > arena->_memory_start + arena->_capacity;
     if (arena_ran_out_of_memory) {
-        uint64_t total_size = pos_end - pos_start;
-        uint64_t padding_size = pos_aligned - pos_start;
-        uint64_t memory_left = arena->_capacity - (arena->_position - arena->_memory_start);
+        u64 total_size = pos_end - pos_start;
+        u64 padding_size = pos_aligned - pos_start;
+        u64 memory_left = arena->_capacity - (arena->_position - arena->_memory_start);
         fprintf(
             stderr,
             "Arena ran out of memory. Requested %zu bytes to reserve (%zu bytes for padding + %zu bytes for the data), but arena has only %zu bytes left.\n",
@@ -129,7 +130,7 @@ void *arena_push_data(Arena *arena, u64 type_size, u64 count, u64 alignment, b32
     // If memory reservation crosses a page boundary it needs to commit as many memory pages as needed
     u8 *next_reserved_page = (u8*)(((u64)pos_end + (arena->_page_size - 1)) & -arena->_page_size);
     if (next_reserved_page > arena->_next_reserved_page) {
-        uint64_t size_from_last_page = pos_end - arena->_next_reserved_page;
+        u64 size_from_last_page = pos_end - arena->_next_reserved_page;
         vm_commit_pages(arena->_next_reserved_page, size_from_last_page);
         arena->_next_reserved_page = next_reserved_page;
     }
@@ -142,24 +143,44 @@ void *arena_push_data(Arena *arena, u64 type_size, u64 count, u64 alignment, b32
     return pos_aligned;
 }
 
-void *arena_grow_or_realloc(Arena *arena, void *prev_memory, u64 prev_size, u64 new_size) {
-    // @TODO:
-    UNUSED(arena);
-    UNUSED(prev_memory);
-    UNUSED(prev_size);
-    UNUSED(new_size);
-    abort();
+void *arena_grow_in_place_or_realloc_impl(Arena *arena, void *prev_memory, u64 prev_size, u64 new_size, u64 alignment) {
+    // @NOTE 1: be extremely careful doing any changes to this function because it's difficult to get it right. Use a suite
+    // of tests to check any changes that you make.
+    // @NOTE 2: extra memory is not zeroed out. It's up to the caller to handle it carefully.
+
+    // This function handles three cases:
+    // 1. prev_memory is contained in the arena and it's the last element pushed. It will grow the memory in place.
+    // 2. prev_memory is contained in the arena and it isn't the last element pushed. It will push memory into the arena and clone it.
+    // 3. prev_memory is not contained in the arena. It will push memory into the arena and clone it.
+    assert(new_size > 0 && new_size > prev_size);
+    assert(alignment >= 1);
+
+    u8 *new_pos = (u8*)prev_memory;
+    if ((u8*)prev_memory + prev_size == arena->_position) {
+        // Extend size in place. Allocate memory for the difference between new_size and prev_size with no alignment to
+        // make sure that all data remains sequential in memory. We use arena_push_data() because this function already
+        // takes care of committing memory pages automatically and handles out of memory conditions.
+        u64 size_remaining = new_size - prev_size;
+        arena_push_data(arena, size_remaining, 1, 1, 0);
+    } else {
+        // Reallocate memory, either because prev_memory is not contained within the arena or there's not enough room to
+        // grow the data in place.
+        new_pos = (u8*)arena_push_data(arena, new_size, 1, alignment, 0);
+        memcpy(new_pos, prev_memory, prev_size);
+    }
+
+    return new_pos;
 }
 
-uint64_t  arena_get_capacity(Arena *arena) {
+u64 arena_get_capacity(Arena *arena) {
     return arena->_capacity;
 }
 
-uint64_t arena_get_pos(Arena *arena) {
+u64 arena_get_pos(Arena *arena) {
     return arena->_position - arena->_memory_start;
 }
 
-void arena_set_pos(Arena *arena, uint64_t pos) {
+void arena_set_pos(Arena *arena, u64 pos) {
     assert(pos <= arena->_capacity);
     arena->_position = arena->_memory_start + pos;
 }
@@ -248,10 +269,9 @@ String string_from_cstring(const char *str) {
 }
 
 const char *string_to_cstring(Arena *arena, String str) {
-    char *ret = arena_push(arena, char, str.length + 1);
-    memcpy(ret, str.data, str.length);
-    ret[str.length] = 0;
-    return ret;
+    char *c_str = arena_grow_in_place_or_realloc(arena, char, (void*)str.data, str.length, str.length + 1);
+    c_str[str.length] = 0;
+    return c_str;
 }
 
 bool string_equals(String a, String b) {
@@ -287,19 +307,18 @@ bool string_ends_with(String str, String search) {
 }
 
 String string_concat(Arena *arena, String a, String b) {
-    assert(arena != 0);
-
-    u64 length = a.length + b.length;
-    u8 *data = 0;
-    if (length > 0) {
-        data = arena_push(arena, u8, length);
-        memcpy(data, a.data, a.length);
+    // This function tries to allocate as little memory as possible, ideally zero allocations. It will only alocate memory
+    // if arguments a and b are non-empty strings.
+    u8 *data = (u8*)(a.length > 0 ? a.data : b.data);
+    u64 new_length = a.length + b.length;
+    if (a.length > 0 && b.length > 0) {
+        data = arena_grow_in_place_or_realloc(arena, u8, (void*)a.data, a.length, new_length);
         memcpy(data + a.length, b.data, b.length);
     }
 
     String ret = {
         .data = data,
-        .length = length
+        .length = new_length
     };
     return ret;
 }
@@ -307,7 +326,6 @@ String string_concat(Arena *arena, String a, String b) {
 // ####################################################################################################################
 // File I/O
 bool read_entire_file(Arena *arena, String file_name, Buffer *out_file_buffer) {
-    assert(arena != 0);
     assert(out_file_buffer != 0);
 
     u64 arena_original_pos = arena_get_pos(arena);

@@ -1,5 +1,5 @@
 # C
-This directory contains common utilities for C/C++ projects. A suite of tests has been included and can be compiled with `build.bat` in Windows.
+This directory contains common utilities for C++ projects. A suite of tests has been included and can be compiled with `build.bat` in Windows.
 
 ## TODO
 - Enable support for paths longer than MAX_PATH (260) characters in Windows.
@@ -8,10 +8,8 @@ This directory contains common utilities for C/C++ projects. A suite of tests ha
 - Add tests for invalid situations. For example, test arena_push_nozero() aborts the program if size == 0.
 
 ## Supported languages and platforms
-The following languages are supported:
-- C >= 99
-- C++ >= 98
+`basic.cpp` is meant to be used only for C++ projects. The minimum supported version is C++11.
 
 The following platforms are supported:
 - Linux
-- Windows 10 (it might work fine in older editions but I haven't tested)
+- Windows 10 (it might work fine in older versions of Windows but I haven't tested)

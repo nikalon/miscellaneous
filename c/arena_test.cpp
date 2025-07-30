@@ -327,6 +327,72 @@ static void  test_get_set_position_and_clear(void *context) {
     arena_free(&arena);
 }
 
+static void test_grow_buffer_in_place(void *context) {
+    UNUSED(context);
+    Arena arena = arena_alloc(ARENA_CAPACITY);
+
+    {
+        // Buffer is the first thing pused into the arena
+        u8 *buffer = arena_push(&arena, u8, 100);
+        u8 *buffer_original = buffer;
+
+        buffer = arena_grow_in_place_or_realloc(&arena, u8, buffer, 100, 200);
+        EXPECT(buffer == buffer_original);
+    }
+
+    {
+        // Push other random stuff in the arena
+        arena_push(&arena, u64, 20);
+        arena_push(&arena, b32, 43);
+        arena_push(&arena, i8, 541);
+    }
+
+    {
+        // Buffer is the last thing pused into the arena
+        u8 *buffer = arena_push(&arena, u8, 100);
+        u8 *buffer_original = buffer;
+
+        buffer = arena_grow_in_place_or_realloc(&arena, u8, buffer, 100, 200);
+        EXPECT(buffer == buffer_original);
+    }
+
+    arena_free(&arena);
+}
+
+static void test_reallocate_buffer_instead_of_growing(void *context) {
+    UNUSED(context);
+    Arena arena = arena_alloc(ARENA_CAPACITY);
+
+    // First push an array that we will try to grow later and fill it with something that will be checked later
+    u64 *buffer = arena_push(&arena, u64, 100);
+    u64 *buffer_original = buffer;
+    for (u64 i = 0; i < 100; i++) {
+        buffer[i] = 0xBABA;
+    }
+
+    // Push random stuff in the arena, so that the previous buffer is no longer the last element pushed into the arena
+    u16 expected_canary = 0xCACA;
+    u16 *canary = arena_push(&arena, u16);
+    *canary = expected_canary;
+
+    // Now if we try to grow the buffer it should reallocate it entirely because it hasn't enough space left to grow
+    buffer = arena_grow_in_place_or_realloc(&arena, u64, buffer, 100, 200);
+    EXPECT(buffer > buffer_original);
+
+    // Check original data has been cloned
+    for (u64 i = 0; i < 100; i++) {
+        EXPECT(buffer[i] == 0xBABA);
+    }
+
+    // Write random data into the buffer to check that we are really sure it has reallocated the buffer
+    for (u64 i = 0; i < 200; i++) {
+        buffer[i] = 0xFF;
+    }
+
+    EXPECT(*canary == expected_canary);
+    arena_free(&arena);
+}
+
 int main(void) {
     TestSuite suite = test_suite_new(__FILE__);
     TEST(&suite, test_push_for_primitive_types);
@@ -338,6 +404,8 @@ int main(void) {
     TEST(&suite, test_reserve_arrays_of_page_size_until_maximum_capacity);
     TEST(&suite, test_arena_free_invalidates_instance);
     TEST(&suite, test_get_set_position_and_clear);
+    TEST(&suite, test_grow_buffer_in_place);
+    TEST(&suite, test_reallocate_buffer_instead_of_growing);
 
     int errcode = test_suite_run_all_and_print(&suite);
     return errcode;

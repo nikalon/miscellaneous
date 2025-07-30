@@ -265,65 +265,324 @@ static void test_string_ends_with(void *context) {
 static void test_string_concat(void *context) {
     Arena *arena = (Arena*)context;
 
-    String a = S("The quick");
-    String b = S(" brown fox");
-    String ret = string_concat(arena, a, b);
-    String expected = S("The quick brown fox");
+    {
+        // Strings A and B aren't allocated in the arena
+        String a = S("The quick");
+        String b = S(" brown fox");
 
-    // Check new string was allocated with enough memory
-    EXPECT(arena_get_pos(arena) == expected.length);
+        u64 arena_original_pos = arena_get_pos(arena);
+        String ret = string_concat(arena, a, b);
+        String expected = S("The quick brown fox");
 
-    // Check string correctness
-    EXPECT(ret.length == 19);
-    EXPECT(string_equals(ret, expected));
+        // Check new string was allocated in the arena with at least the necessary memory to store the string.
+        EXPECT(arena_get_pos(arena) == arena_original_pos + a.length + b.length);
+
+        // Check string correctness
+        EXPECT(ret.length == 19);
+        EXPECT(string_equals(ret, expected));
+    }
+
+    {
+        // String A is allocated in the arena and string B isn't allocated in the arena
+        const char a_cstr[] = "The quick";
+        u8 *a_data = arena_push(arena, u8, ARRAY_LENGTH(a_cstr) - 1);
+        memcpy(a_data, a_cstr, ARRAY_LENGTH(a_cstr) - 1);
+        String a = { a_data, ARRAY_LENGTH(a_cstr) - 1 };
+
+        String b = S(" brown fox");
+
+        u64 arena_original_pos = arena_get_pos(arena);
+        String ret = string_concat(arena, a, b);
+        String expected = S("The quick brown fox");
+
+        // Check new string was allocated in the arena with at least the necessary memory to store the string.
+        EXPECT(arena_get_pos(arena) == arena_original_pos + b.length);
+
+        // Check string correctness
+        EXPECT(ret.length == 19);
+        EXPECT(string_equals(ret, expected));
+    }
+
+    {
+        // String A isn't allocated in the arena and string B is allocated in the arena
+        String a = S("The quick");
+
+        const char b_cstr[] = " brown fox";
+        u8 *b_data = arena_push(arena, u8, ARRAY_LENGTH(b_cstr) - 1);
+        memcpy(b_data, b_cstr, ARRAY_LENGTH(b_cstr) - 1);
+        String b = { b_data, ARRAY_LENGTH(b_cstr) - 1 };
+
+        u64 arena_original_pos = arena_get_pos(arena);
+        String ret = string_concat(arena, a, b);
+        String expected = S("The quick brown fox");
+
+        // The returned string will be pushed entirely into the arena because string A isn't the last element pushed into
+        // the arena, even though strings a and b are most likely to be sequential in memory.
+        EXPECT(arena_get_pos(arena) >= arena_original_pos + a.length);
+
+        // Check string correctness
+        EXPECT(ret.length == 19);
+        EXPECT(string_equals(ret, expected));
+    }
+
+    {
+        // Strings A and B are both allocated in the arena
+        const char a_cstr[] = "The quick";
+        u8 *a_data = arena_push(arena, u8, ARRAY_LENGTH(a_cstr) - 1);
+        memcpy(a_data, a_cstr, ARRAY_LENGTH(a_cstr) - 1);
+        String a = { a_data, ARRAY_LENGTH(a_cstr) - 1 };
+
+        const char b_cstr[] = " brown fox";
+        u8 *b_data = arena_push(arena, u8, ARRAY_LENGTH(b_cstr) - 1);
+        memcpy(b_data, b_cstr, ARRAY_LENGTH(b_cstr) - 1);
+        String b = { b_data, ARRAY_LENGTH(b_cstr) - 1 };
+
+        u64 arena_original_pos = arena_get_pos(arena);
+        String ret = string_concat(arena, a, b);
+        String expected = S("The quick brown fox");
+
+        // Check new string was allocated in the arena with at least the necessary memory to store the string.
+        EXPECT(arena_get_pos(arena) == arena_original_pos + a.length + b.length);
+
+        // Check string correctness
+        EXPECT(ret.length == 19);
+        EXPECT(string_equals(ret, expected));
+    }
 }
 
 static void test_string_concat_empty_strings(void *context) {
     Arena *arena = (Arena*)context;
 
-    String a = S("");
-    String b = S("");
-    String ret = string_concat(arena, a, b);
-    String expected = S("");
+    {
+        // Strings A and B aren't allocated in the arena
+        String a = S("");
+        String b = S("");
+        String ret = string_concat(arena, a, b);
+        String expected = S("");
+        u64 arena_start_pos = arena_get_pos(arena);
 
-    // Check new string was allocated with enough memory
-    EXPECT(arena_get_pos(arena) == expected.length);
+        // Check nothing was allocated in the arena, given that string A and string B are empty. The function should return
+        // an empty String object
+        EXPECT(arena_get_pos(arena) == arena_start_pos);
 
-    // Check string correctness
-    EXPECT(ret.length == 0);
-    EXPECT(string_equals(ret, expected));
+        // Check string correctness
+        EXPECT(ret.length == 0);
+        EXPECT(string_equals(ret, expected));
+    }
+
+    {
+        // String A is allocated in the arena and string B isn't allocated in the arena
+        String a = {};
+        a.data = arena_push(arena, u8); // Gargabe data. Unused.
+        a.length = 0;
+
+        String b = S("");
+        String ret = string_concat(arena, a, b);
+        String expected = S("");
+        u64 arena_start_pos = arena_get_pos(arena);
+
+        // Check nothing was allocated in the arena, given that string A and string B are empty. The function should return
+        // an empty String object
+        EXPECT(arena_get_pos(arena) == arena_start_pos);
+
+        // Check string correctness
+        EXPECT(ret.length == 0);
+        EXPECT(string_equals(ret, expected));
+    }
+
+    {
+        // String A isn't allocated in the arena and string B is allocated in the arena
+        String a = S("");
+
+        String b = {};
+        b.data = arena_push(arena, u8); // Gargabe data. Unused.
+        b.length = 0;
+
+        String ret = string_concat(arena, a, b);
+        String expected = S("");
+        u64 arena_start_pos = arena_get_pos(arena);
+
+        // Check nothing was allocated in the arena, given that string A and string B are empty. The function should return
+        // an empty String object
+        EXPECT(arena_get_pos(arena) == arena_start_pos);
+
+        // Check string correctness
+        EXPECT(ret.length == 0);
+        EXPECT(string_equals(ret, expected));
+    }
+
+    {
+        // Strings A and B are both allocated in the arena
+        String a = {};
+        a.data = arena_push(arena, u8); // Gargabe data. Unused.
+        a.length = 0;
+
+        String b = {};
+        b.data = arena_push(arena, u8); // Gargabe data. Unused.
+        b.length = 0;
+
+        String ret = string_concat(arena, a, b);
+        String expected = S("");
+        u64 arena_start_pos = arena_get_pos(arena);
+
+        // Check nothing was allocated in the arena, given that string A and string B are empty. The function should return
+        // an empty String object
+        EXPECT(arena_get_pos(arena) == arena_start_pos);
+
+        // Check string correctness
+        EXPECT(ret.length == 0);
+        EXPECT(string_equals(ret, expected));
+    }
 }
 
 static void test_string_concat_empty_with_something(void *context) {
     Arena *arena = (Arena*)context;
 
-    String a = S("");
-    String b = S("quick brown fox");
-    String ret = string_concat(arena, a, b);
-    String expected = S("quick brown fox");
+    {
+        // Strings A and B aren't allocated in the arena
+        String a = S("");
+        String b = S("quick brown fox");
 
-    // Check new string was allocated with enough memory
-    EXPECT(arena_get_pos(arena) == expected.length);
+        u64 arena_original_pos = arena_get_pos(arena);
+        String ret = string_concat(arena, a, b);
+        String expected = S("quick brown fox");
 
-    // Check string correctness
-    EXPECT(ret.length == 15);
-    EXPECT(string_equals(ret, expected));
+        // Check no memory was allocated, given that string A is zero, so we should get string B directly
+        EXPECT(arena_get_pos(arena) == arena_original_pos);
+
+        // Check string correctness
+        EXPECT(ret.length == 15);
+        EXPECT(string_equals(ret, expected));
+    }
+
+    {
+        // String A is allocated in the arena and B isn't allocated in the arena
+        String a = {};
+        a.data = (u8*)arena_push(arena, u8); // Garbage data. Unused.
+        a.length = 0;
+
+        String b = S("quick brown fox");
+
+        u64 arena_original_pos = arena_get_pos(arena);
+        String ret = string_concat(arena, a, b);
+        String expected = S("quick brown fox");
+
+        // Check no memory was allocated, given that string A is zero, so we should get string B directly
+        EXPECT(arena_get_pos(arena) == arena_original_pos);
+
+        // Check string correctness
+        EXPECT(ret.length == 15);
+        EXPECT(string_equals(ret, expected));
+    }
+
+    {
+        // String A isn't allocated in the arena and B is allocated in the arena
+        String a = S("");
+
+        const char b_cstr[] = "quick brown fox";
+        u8 *b_data = arena_push(arena, u8, ARRAY_LENGTH(b_cstr) - 1);
+        memcpy(b_data, b_cstr, ARRAY_LENGTH(b_cstr) - 1);
+        String b = { b_data, ARRAY_LENGTH(b_cstr) - 1 };
+
+        u64 arena_original_pos = arena_get_pos(arena);
+        String ret = string_concat(arena, a, b);
+        String expected = S("quick brown fox");
+
+        // Check no memory was allocated, given that string A is zero, so we should get string b directly
+        EXPECT(arena_get_pos(arena) == arena_original_pos);
+
+        // Check string correctness
+        EXPECT(ret.length == 15);
+        EXPECT(string_equals(ret, expected));
+    }
+
+    {
+        // Strings A and B are both allocated in the stack
+        String a = {};
+        a.data = (u8*)arena_push(arena, u8); // Garbage data. Unused.
+        a.length = 0;
+
+        const char b_cstr[] = "quick brown fox";
+        u8 *b_data = arena_push(arena, u8, ARRAY_LENGTH(b_cstr) - 1);
+        memcpy(b_data, b_cstr, ARRAY_LENGTH(b_cstr) - 1);
+        String b = { b_data, ARRAY_LENGTH(b_cstr) - 1 };
+
+        u64 arena_original_pos = arena_get_pos(arena);
+        String ret = string_concat(arena, a, b);
+        String expected = S("quick brown fox");
+
+        // Check no memory was allocated, given that string A is zero, so we should get string b directly
+        EXPECT(arena_get_pos(arena) == arena_original_pos);
+
+        // Check string correctness
+        EXPECT(ret.length == 15);
+        EXPECT(string_equals(ret, expected));
+    }
 }
 
 static void test_string_concat_something_with_empty(void *context) {
     Arena *arena = (Arena*)context;
 
-    String a = S("The quick");
-    String b = S("");
-    String ret = string_concat(arena, a, b);
-    String expected = S("The quick");
+    {
+        // Strings A and B aren't allocated in the arena
+        String a = S("The quick");
+        String b = S("");
 
-    // Check new string was allocated with enough memory
-    EXPECT(arena_get_pos(arena) == expected.length);
+        u64 arena_original_pos = arena_get_pos(arena);
+        String ret = string_concat(arena, a, b);
+        String expected = S("The quick");
 
-    // Check string correctness
-    EXPECT(ret.length == 9);
-    EXPECT(string_equals(ret, expected));
+        // Check no memory was allocated, given that string B is zero, so we should get string A directly
+        EXPECT(arena_get_pos(arena) == arena_original_pos);
+
+        // Check string correctness
+        EXPECT(ret.length == 9);
+        EXPECT(string_equals(ret, expected));
+    }
+
+    {
+        // String A is allocated in the stack and B isn't allocated in the arena
+        const char a_cstr[] = "The quick";
+        u8 *a_data = arena_push(arena, u8, ARRAY_LENGTH(a_cstr) - 1);
+        memcpy(a_data, a_cstr, ARRAY_LENGTH(a_cstr) - 1);
+        String a = { a_data, ARRAY_LENGTH(a_cstr) - 1 };
+
+        String b = S("");
+
+        u64 arena_original_pos = arena_get_pos(arena);
+        String ret = string_concat(arena, a, b);
+        String expected = S("The quick");
+
+        // Check no memory was allocated, given that string B is zero, so we should get string A directly
+        EXPECT(arena_get_pos(arena) == arena_original_pos);
+
+        // Check string correctness
+        EXPECT(ret.length == 9);
+        EXPECT(string_equals(ret, expected));
+    }
+
+    {
+        // String A is allocated in the stack and B isn't allocated in the arena
+        const char a_cstr[] = "The quick";
+        u8 *a_data = arena_push(arena, u8, ARRAY_LENGTH(a_cstr) - 1);
+        memcpy(a_data, a_cstr, ARRAY_LENGTH(a_cstr) - 1);
+        String a = { a_data, ARRAY_LENGTH(a_cstr) - 1 };
+
+        String b = {};
+        b.data = arena_push(arena, u8); // Garbage data. Unused.
+        b.length = 0;
+
+        u64 arena_original_pos = arena_get_pos(arena);
+        String ret = string_concat(arena, a, b);
+        String expected = S("The quick");
+
+        // Check no memory was allocated, given that string b is zero, so we should get string A directly
+        EXPECT(arena_get_pos(arena) == arena_original_pos);
+
+        // Check string correctness
+        EXPECT(ret.length == 9);
+        EXPECT(string_equals(ret, expected));
+    }
 }
 
 static void test_read_entire_file(void *context) {
@@ -375,7 +634,7 @@ int main(void) {
     TestSuite suite = test_suite_new(__FILE__);
 
     // Arena used for every individual test
-    Arena arena_test = arena_alloc(1*GiB);
+    Arena arena_test = arena_alloc((u64)4*GiB);
     test_suite_set_context(&suite, &arena_test);
     test_suite_do_before_every_test(&suite, do_before_every_test_handler);
 
