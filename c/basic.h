@@ -47,10 +47,10 @@ typedef double f64;
 
 #define UNUSED(value) ((void) value)
 
-#define KiB (1024)
-#define MiB (1024*KiB)
-#define GiB (1024*MiB)
-#define TiB (1024*GiB)
+#define KiB ((u64)1024)
+#define MiB ((u64)1024*KiB)
+#define GiB ((u64)1024*MiB)
+#define TiB ((u64)1024*GiB)
 
 #define ARRAY_LENGTH(array) ((u64)(sizeof(array)/sizeof(array[0])))
 
