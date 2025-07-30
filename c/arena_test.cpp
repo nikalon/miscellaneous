@@ -31,7 +31,7 @@ static u64 get_page_size() {
 #endif
 }
 
-static void test_push_for_primitive_types(void *context) {
+static void test_push_primitive_types(void *context) {
     UNUSED(context);
     Arena arena = arena_alloc(ARENA_CAPACITY);
     u8  *a = arena_push(&arena, u8);
@@ -54,7 +54,7 @@ static void test_push_for_primitive_types(void *context) {
     arena_free(&arena);
 }
 
-static void test_push_and_clear_for_primitive_types(void *context) {
+static void test_push_and_clear_primitive_types(void *context) {
     UNUSED(context);
     Arena arena = arena_alloc(ARENA_CAPACITY);
     u8  *a = arena_push(&arena, u8);
@@ -97,7 +97,7 @@ static void test_push_and_clear_for_primitive_types(void *context) {
     arena_free(&arena);
 }
 
-static void test_reserve_arrays(void *context) {
+static void test_push_arrays(void *context) {
     UNUSED(context);
     size_t array_size = 4096;
 
@@ -134,7 +134,7 @@ static void test_reserve_arrays(void *context) {
     arena_free(&arena);
 }
 
-void test_reserve_primitive_types_and_arrays(void *context) {
+void test_push_primitive_types_and_arrays(void *context) {
     UNUSED(context);
     size_t array_size = 4096;
 
@@ -195,7 +195,7 @@ void test_reserve_primitive_types_and_arrays(void *context) {
     arena_free(&arena);
 }
 
-static void  test_reserve_arrays_of_page_size_until_maximum_capacity(void *context) {
+static void  test_push_arrays_of_page_size_until_arena_is_full(void *context) {
     UNUSED(context);
     u64 page_size = get_page_size();
     Arena arena = arena_alloc(ARENA_CAPACITY);
@@ -214,7 +214,7 @@ static void  test_reserve_arrays_of_page_size_until_maximum_capacity(void *conte
     arena_free(&arena);
 }
 
-static void  test_arena_capacity_limit(void *context) {
+static void test_push_gigantic_array_of_arena_capacity(void *context) {
     UNUSED(context);
     Arena arena = arena_alloc(ARENA_CAPACITY);
 
@@ -395,13 +395,13 @@ static void test_reallocate_buffer_instead_of_growing(void *context) {
 
 int main(void) {
     TestSuite suite = test_suite_new(__FILE__);
-    TEST(&suite, test_push_for_primitive_types);
-    TEST(&suite, test_push_and_clear_for_primitive_types);
+    TEST(&suite, test_push_primitive_types);
+    TEST(&suite, test_push_and_clear_primitive_types);
     TEST(&suite, test_push_must_be_zero);
-    TEST(&suite, test_reserve_arrays);
-    TEST(&suite, test_reserve_primitive_types_and_arrays);
-    TEST(&suite, test_arena_capacity_limit);
-    TEST(&suite, test_reserve_arrays_of_page_size_until_maximum_capacity);
+    TEST(&suite, test_push_arrays);
+    TEST(&suite, test_push_primitive_types_and_arrays);
+    TEST(&suite, test_push_gigantic_array_of_arena_capacity);
+    TEST(&suite, test_push_arrays_of_page_size_until_arena_is_full);
     TEST(&suite, test_arena_free_invalidates_instance);
     TEST(&suite, test_get_set_position_and_clear);
     TEST(&suite, test_grow_buffer_in_place);
