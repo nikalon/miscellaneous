@@ -169,53 +169,63 @@ String string_slice      (String str, u64 start, u64 end);
 String string_concat     (Arena *arena, String a, String b);
 
 // ####################################################################################################################
-// Dynamic Arrays
-template <typename T>
-struct DynamicArray {
-    Arena *arena;
-    T *data;
-    u64 length;
-    u64 capacity;
+// Dynamic Array
 
-    T operator[](u64 index) {
-        T value = this->data[index];
-        return value;
+/*
+* The macro DEFINE_DYNAMIC_ARRAY is used to declare and define your own array list over elements of type ITEM_TYPE. The
+* array list will be defined with name TYPE_NAME and their methods are going to start with the prefix METHOD_PREFIX.
+*
+* The advantage of defining dynamic arrays this way is that you still get type checking. It's a compilation error when
+* you try to call a method defined for a dynamic array into another dynamic array.
+*
+* The disadvantage is that the dynamic array is only going to be usable for the compilation unit where it is defined.
+* You can get around that with unity builds.
+*
+* Code example:
+*
+* DEFINE_DYNAMIC_ARRAY(MyCustomList, mcl, f32)
+* DEFINE_DYNAMIC_ARRAY(BoolArrayList, bool_array_list, b8)
+*
+* MyCustomList list = mcl_new(&arena);
+* mcl_add(&list, 12.2f);
+* mcl_add(&list, 5.84235f);
+* mcl_remove(&list, 1);
+*
+* BoolArrayList bl = bool_array_list_new(&arena);
+* bool_array_list_add(&bl, false);
+*
+* */
+#define DEFINE_DYNAMIC_ARRAY(TYPE_NAME, METHOD_PREFIX, ITEM_TYPE) \
+    typedef struct { \
+        Arena *arena; \
+        ITEM_TYPE* data; \
+        u64 length; \
+        u64 capacity; \
+    } TYPE_NAME; \
+    TYPE_NAME METHOD_PREFIX##_new(Arena *arena) { \
+        TYPE_NAME da = {}; \
+        da.length = 0; \
+        da.capacity = 16; \
+        da.arena = arena; \
+        da.data = arena_push(arena, ITEM_TYPE, da.capacity); \
+        return da; \
+    } \
+    void METHOD_PREFIX##_add(TYPE_NAME *da, ITEM_TYPE data) { \
+        if (da->length == da->capacity) { \
+            u64 new_capacity = 2*da->capacity; \
+            da->data = arena_grow_in_place_or_realloc(da->arena, ITEM_TYPE, da->data, da->capacity, new_capacity); \
+            da->capacity = new_capacity; \
+        } \
+        da->data[da->length++] = data; \
+    } \
+    bool METHOD_PREFIX##_remove(TYPE_NAME *da, u64 index) { \
+        if (index >= da->length) return false; \
+        for (u64 i = index; i < da->length - 1; i++) { \
+            da->data[i] = da->data[i+1]; \
+        } \
+        da->length--; \
+        return true; \
     }
-};
-
-template <typename T> DynamicArray<T> da_new(Arena *arena) {
-    DynamicArray<T> da = {};
-    da.length = 0;
-    da.capacity = 16;
-    da.arena = arena;
-    da.data = (T*)arena_push_data(da.arena, sizeof(T), da.capacity, alignof(T), 0);
-
-    return da;
-};
-
-template <typename T> void da_add(DynamicArray<T> *da, T data) {
-    if (da->length == da->capacity) {
-        // Grow dynamic array
-        u64 new_capacity = 2 * da->capacity;
-        //da->data = arena_grow_in_place_or_realloc(da->arena, u32, da->data, da->capacity, new_capacity);
-        da->data = (T*)arena_grow_in_place_or_realloc_impl(da->arena, da->data, sizeof(T)*da->capacity, sizeof(T)*new_capacity, alignof(T));
-        da->capacity = new_capacity;
-    }
-
-    da->data[da->length++] = data;
-};
-
-template <typename T> bool da_remove(DynamicArray<T> *da, u64 index) {
-    if (index >= da->length) return false;
-
-    // Push every element to the left by one position starting from the element to remove
-    for (u64 i = index; i < da->length - 1; i++) {
-        da->data[i] = da->data[i+1];
-    }
-
-    da->length -= 1;
-    return true;
-};
 
 // ####################################################################################################################
 // File I/O

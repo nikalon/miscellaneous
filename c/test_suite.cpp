@@ -12,7 +12,9 @@
 
 #define TEST_SUITE_MAX_TESTS 2048
 #define TEST(suite_ptr, test_func_name) test_suite_add_test(suite_ptr, #test_func_name, test_func_name)
+
 #define EXPECT(condition) if (!(condition)) raise(SIGABRT);
+//#define EXPECT(condition) if (!(condition)) __builtin_trap();
 
 static void test_suite_handle_sigabrt(int signal);
 static void test_suite_handle_sigabrt(int signal);

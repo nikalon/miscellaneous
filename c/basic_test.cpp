@@ -3,6 +3,9 @@
 #include "basic.h"
 #include "test_suite.cpp"
 
+DEFINE_DYNAMIC_ARRAY(BoolList, bl, b8)
+DEFINE_DYNAMIC_ARRAY(IntegerList, il, u32)
+
 static void test_buffer_read_u8(void *context) {
     UNUSED(context);
 
@@ -628,40 +631,40 @@ static void test_read_entire_file_does_not_exist(void *context) {
 static void test_dynamic_array_add_elements_of_one_byte(void *context) {
     Arena *arena = (Arena*)context;
 
-    DynamicArray da = da_new<b8>(arena);
+    BoolList da = bl_new(arena);
     EXPECT(da.length == 0);
     EXPECT(da.capacity >= da.length);
 
     // Fill dynamic array with a increment counter starting at 0
     for (u64 i = 0; i < 120; i++) {
-        da_add(&da, (b8)i);
+        bl_add(&da, (b8)i);
         EXPECT(da.length == i + 1);
         EXPECT(da.capacity >= da.length);
     }
 
     // Check dynamic array actually stored all elements correctly
     for (u64 i = 0; i < 120; i++) {
-        EXPECT(da[i] == (b8)i);
+        EXPECT(da.data[i] == (b8)i);
     }
 }
 
 static void test_dynamic_array_add_elements_of_four_bytes(void *context) {
     Arena *arena = (Arena*)context;
 
-    DynamicArray da = da_new<u32>(arena);
+    IntegerList da = il_new(arena);
     EXPECT(da.length == 0);
     EXPECT(da.capacity >= da.length);
 
     // Fill dynamic array with a increment counter starting at 0
     for (u64 i = 0; i < 1024; i++) {
-        da_add(&da, (u32)i);
+        il_add(&da, (u32)i);
         EXPECT(da.length == i + 1);
         EXPECT(da.capacity >= da.length);
     }
 
     // Check dynamic array actually stored all elements correctly
     for (u64 i = 0; i < 1024; i++) {
-        EXPECT(da[i] == (u32)i);
+        EXPECT(da.data[i] == (u32)i);
     }
 }
 
@@ -669,43 +672,43 @@ static void test_dynamic_array_remove_elements_until_empty(void *context) {
     Arena *arena = (Arena*)context;
 
     // Fill dynamic array with data
-    DynamicArray da = da_new<u32>(arena);
-    da_add(&da, (u32)10);
-    da_add(&da, (u32)20);
-    da_add(&da, (u32)30);
-    da_add(&da, (u32)40);
+    IntegerList da = il_new(arena);
+    il_add(&da, (u32)10);
+    il_add(&da, (u32)20);
+    il_add(&da, (u32)30);
+    il_add(&da, (u32)40);
     EXPECT(da.length == 4);
     EXPECT(da.capacity >= da.length);
 
     // Remove a value in the middle of the array
-    da_remove(&da, 1);
+    il_remove(&da, 1);
     EXPECT(da.length == 3);
     EXPECT(da.capacity >= da.length);
-    EXPECT(da[0] == 10);
-    EXPECT(da[1] == 30);
-    EXPECT(da[2] == 40);
+    EXPECT(da.data[0] == 10);
+    EXPECT(da.data[1] == 30);
+    EXPECT(da.data[2] == 40);
 
     // Remove last element
-    da_remove(&da, 2);
+    il_remove(&da, 2);
     EXPECT(da.length == 2);
     EXPECT(da.capacity >= da.length);
-    EXPECT(da[0] == 10);
-    EXPECT(da[1] == 30);
+    EXPECT(da.data[0] == 10);
+    EXPECT(da.data[1] == 30);
 
     // Remove first element
-    da_remove(&da, 0);
+    il_remove(&da, 0);
     EXPECT(da.length == 1);
     EXPECT(da.capacity >= da.length);
-    EXPECT(da[1] == 30);
+    EXPECT(da.data[1] == 30);
 
     // Remove remaining element
-    da_remove(&da, 0);
+    il_remove(&da, 0);
     EXPECT(da.length == 0);
     EXPECT(da.capacity >= da.length);
 
     // Keep removing elements in the empty dynamic array
     for (u64 i = 0; i < 10000; i++) {
-        da_remove(&da, 0);
+        il_remove(&da, 0);
     }
 }
 
@@ -713,27 +716,27 @@ static void test_dynamic_array_try_remove_invalid_indices(void* context) {
     Arena *arena = (Arena*)context;
 
     // Fill dynamic array with data
-    DynamicArray da = da_new<u32>(arena);
-    da_add(&da, (u32)10);
-    da_add(&da, (u32)20);
-    da_add(&da, (u32)30);
-    da_add(&da, (u32)40);
+    IntegerList da = il_new(arena);
+    il_add(&da, (u32)10);
+    il_add(&da, (u32)20);
+    il_add(&da, (u32)30);
+    il_add(&da, (u32)40);
     EXPECT(da.length == 4);
     EXPECT(da.capacity >= da.length);
 
     // Try removing elements with invalid indices
     assert(da.length < 500);
     for (u64 i = 500; i < 10000; i++) {
-        da_remove(&da, i);
+        il_remove(&da, i);
     }
 
     // Dynamic array should remain the same
     EXPECT(da.length == 4)
     EXPECT(da.capacity >= da.length);
-    EXPECT(da[0] == 10);
-    EXPECT(da[1] == 20);
-    EXPECT(da[2] == 30);
-    EXPECT(da[3] == 40);
+    EXPECT(da.data[0] == 10);
+    EXPECT(da.data[1] == 20);
+    EXPECT(da.data[2] == 30);
+    EXPECT(da.data[3] == 40);
 }
 
 static void do_before_every_test_handler(void *context) {
