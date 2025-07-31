@@ -625,6 +625,117 @@ static void test_read_entire_file_does_not_exist(void *context) {
     EXPECT(arena_pos_after_reading_file == arena_pos_before_reading_file);
 }
 
+static void test_dynamic_array_add_elements_of_one_byte(void *context) {
+    Arena *arena = (Arena*)context;
+
+    DynamicArray da = da_new<b8>(arena);
+    EXPECT(da.length == 0);
+    EXPECT(da.capacity >= da.length);
+
+    // Fill dynamic array with a increment counter starting at 0
+    for (u64 i = 0; i < 120; i++) {
+        da_add(&da, (b8)i);
+        EXPECT(da.length == i + 1);
+        EXPECT(da.capacity >= da.length);
+    }
+
+    // Check dynamic array actually stored all elements correctly
+    for (u64 i = 0; i < 120; i++) {
+        EXPECT(da[i] == (b8)i);
+    }
+}
+
+static void test_dynamic_array_add_elements_of_four_bytes(void *context) {
+    Arena *arena = (Arena*)context;
+
+    DynamicArray da = da_new<u32>(arena);
+    EXPECT(da.length == 0);
+    EXPECT(da.capacity >= da.length);
+
+    // Fill dynamic array with a increment counter starting at 0
+    for (u64 i = 0; i < 1024; i++) {
+        da_add(&da, (u32)i);
+        EXPECT(da.length == i + 1);
+        EXPECT(da.capacity >= da.length);
+    }
+
+    // Check dynamic array actually stored all elements correctly
+    for (u64 i = 0; i < 1024; i++) {
+        EXPECT(da[i] == (u32)i);
+    }
+}
+
+static void test_dynamic_array_remove_elements_until_empty(void *context) {
+    Arena *arena = (Arena*)context;
+
+    // Fill dynamic array with data
+    DynamicArray da = da_new<u32>(arena);
+    da_add(&da, (u32)10);
+    da_add(&da, (u32)20);
+    da_add(&da, (u32)30);
+    da_add(&da, (u32)40);
+    EXPECT(da.length == 4);
+    EXPECT(da.capacity >= da.length);
+
+    // Remove a value in the middle of the array
+    da_remove(&da, 1);
+    EXPECT(da.length == 3);
+    EXPECT(da.capacity >= da.length);
+    EXPECT(da[0] == 10);
+    EXPECT(da[1] == 30);
+    EXPECT(da[2] == 40);
+
+    // Remove last element
+    da_remove(&da, 2);
+    EXPECT(da.length == 2);
+    EXPECT(da.capacity >= da.length);
+    EXPECT(da[0] == 10);
+    EXPECT(da[1] == 30);
+
+    // Remove first element
+    da_remove(&da, 0);
+    EXPECT(da.length == 1);
+    EXPECT(da.capacity >= da.length);
+    EXPECT(da[1] == 30);
+
+    // Remove remaining element
+    da_remove(&da, 0);
+    EXPECT(da.length == 0);
+    EXPECT(da.capacity >= da.length);
+
+    // Keep removing elements in the empty dynamic array
+    for (u64 i = 0; i < 10000; i++) {
+        da_remove(&da, 0);
+    }
+}
+
+static void test_dynamic_array_try_remove_invalid_indices(void* context) {
+    Arena *arena = (Arena*)context;
+
+    // Fill dynamic array with data
+    DynamicArray da = da_new<u32>(arena);
+    da_add(&da, (u32)10);
+    da_add(&da, (u32)20);
+    da_add(&da, (u32)30);
+    da_add(&da, (u32)40);
+    EXPECT(da.length == 4);
+    EXPECT(da.capacity >= da.length);
+
+    // Try removing elements with invalid indices
+    assert(da.length < 500);
+    for (u64 i = 500; i < 10000; i++) {
+        da_remove(&da, i);
+    }
+
+    // Dynamic array should remain the same
+    EXPECT(da.length == 4)
+    EXPECT(da.capacity >= da.length);
+    EXPECT(da[0] == 10);
+    EXPECT(da[1] == 20);
+    EXPECT(da[2] == 30);
+    EXPECT(da[3] == 40);
+}
+
 static void do_before_every_test_handler(void *context) {
     Arena *arena = (Arena*)context;
     arena_clear(arena);
@@ -656,6 +767,10 @@ int main(void) {
     TEST(&suite, test_string_concat_something_with_empty);
     TEST(&suite, test_read_entire_file);
     TEST(&suite, test_read_entire_file_does_not_exist);
+    TEST(&suite, test_dynamic_array_add_elements_of_one_byte);
+    TEST(&suite, test_dynamic_array_add_elements_of_four_bytes);
+    TEST(&suite, test_dynamic_array_remove_elements_until_empty);
+    TEST(&suite, test_dynamic_array_try_remove_invalid_indices);
 
     int errcode = test_suite_run_all_and_print(&suite);
     arena_free(&arena_test);

@@ -92,7 +92,7 @@ void *arena_push_data(Arena *arena, u64 type_size, u64 count, u64 alignment, b32
 // directly. Use any of the arena_push() or arena_push_nozero() macros instead.
 #define arena_grow_in_place_or_realloc(arena, type, prev_memory, prev_count, new_count) \
     (type*)arena_grow_in_place_or_realloc_impl(arena, prev_memory, sizeof(type)*prev_count, sizeof(type)*new_count, alignof(type))
-void *arena_grow_in_place_or_realloc_impl(Arena *arena, void *prev_memory, u64 prev_size, u64 new_size, u64 alignment);
+void *arena_grow_in_place_or_realloc_impl(Arena *arena, void *data, u64 size, u64 new_size, u64 alignment);
 
 u64  arena_get_capacity(Arena *arena);
 u64  arena_get_pos(Arena *arena);
@@ -167,6 +167,55 @@ bool   string_starts_with(String str, String search);
 bool   string_ends_with  (String str, String search);
 String string_slice      (String str, u64 start, u64 end);
 String string_concat     (Arena *arena, String a, String b);
+
+// ####################################################################################################################
+// Dynamic Arrays
+template <typename T>
+struct DynamicArray {
+    Arena *arena;
+    T *data;
+    u64 length;
+    u64 capacity;
+
+    T operator[](u64 index) {
+        T value = this->data[index];
+        return value;
+    }
+};
+
+template <typename T> DynamicArray<T> da_new(Arena *arena) {
+    DynamicArray<T> da = {};
+    da.length = 0;
+    da.capacity = 16;
+    da.arena = arena;
+    da.data = (T*)arena_push_data(da.arena, sizeof(T), da.capacity, alignof(T), 0);
+
+    return da;
+};
+
+template <typename T> void da_add(DynamicArray<T> *da, T data) {
+    if (da->length == da->capacity) {
+        // Grow dynamic array
+        u64 new_capacity = 2 * da->capacity;
+        //da->data = arena_grow_in_place_or_realloc(da->arena, u32, da->data, da->capacity, new_capacity);
+        da->data = (T*)arena_grow_in_place_or_realloc_impl(da->arena, da->data, sizeof(T)*da->capacity, sizeof(T)*new_capacity, alignof(T));
+        da->capacity = new_capacity;
+    }
+
+    da->data[da->length++] = data;
+};
+
+template <typename T> bool da_remove(DynamicArray<T> *da, u64 index) {
+    if (index >= da->length) return false;
+
+    // Push every element to the left by one position starting from the element to remove
+    for (u64 i = index; i < da->length - 1; i++) {
+        da->data[i] = da->data[i+1];
+    }
+
+    da->length -= 1;
+    return true;
+};
 
 // ####################################################################################################################
 // File I/O
