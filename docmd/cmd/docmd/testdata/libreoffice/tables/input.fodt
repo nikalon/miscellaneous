@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<office:document xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0" xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:dc="http://purl.org/dc/elements/1.1/" office:version="1.3" office:mimetype="application/vnd.oasis.opendocument.text">
+<office:master-styles><style:master-page style:name="Standard"/></office:master-styles>
+<office:body><office:text>
+<table:table table:name="Main">
+  <table:table-column table:number-columns-repeated="3"/>
+  <table:table-header-rows><table:table-row><table:table-cell office:value-type="string"><text:p>Name</text:p></table:table-cell><table:table-cell office:value-type="string"><text:p>Qty</text:p></table:table-cell><table:table-cell office:value-type="string"><text:p>Notes</text:p></table:table-cell></table:table-row></table:table-header-rows>
+  <table:table-row><table:table-cell office:value-type="string"><text:p>Apple</text:p></table:table-cell><table:table-cell office:value-type="string"><text:p>3</text:p></table:table-cell><table:table-cell office:value-type="string"><text:p>a | b *c*</text:p></table:table-cell></table:table-row>
+  <table:table-row><table:table-cell table:number-columns-spanned="2" office:value-type="string"><text:p>Merged across</text:p></table:table-cell><table:covered-table-cell/><table:table-cell office:value-type="string"><text:p>x</text:p></table:table-cell></table:table-row>
+  <table:table-row><table:table-cell table:number-rows-spanned="2" office:value-type="string"><text:p>Tall</text:p></table:table-cell><table:table-cell office:value-type="string"><text:p>1</text:p></table:table-cell><table:table-cell office:value-type="string"><text:p>line one</text:p><text:p/><text:p>line<text:line-break/>two</text:p></table:table-cell></table:table-row>
+  <table:table-row><table:covered-table-cell/><table:table-cell office:value-type="string"><text:p>2</text:p></table:table-cell><table:table-cell/></table:table-row>
+</table:table>
+<text:p>Between tables.</text:p>
+<table:table table:name="Outer">
+  <table:table-column table:number-columns-repeated="2"/>
+  <table:table-row><table:table-cell office:value-type="string"><text:p>Outer</text:p></table:table-cell><table:table-cell office:value-type="string">
+    <table:table table:name="Inner"><table:table-column table:number-columns-repeated="2"/><table:table-row><table:table-cell office:value-type="string"><text:p>in1</text:p></table:table-cell><table:table-cell office:value-type="string"><text:p>in2</text:p></table:table-cell></table:table-row></table:table>
+    <text:p>after</text:p>
+  </table:table-cell></table:table-row>
+</table:table>
+<text:p>End.</text:p>
+</office:text></office:body></office:document>
