@@ -2,7 +2,8 @@
 This directory contains custom configuration files for Neovim. It's based on [kickstart](https://github.com/nvim-lua/kickstart.nvim).
 
 ## Requirements
-- Neovim > 0.9.0
+- Neovim >= 0.12.0 (plugins are installed with its built-in plugin manager, `vim.pack`)
+- git
 
 ## Configuring
 To configure Neovim follow these steps:
@@ -11,14 +12,7 @@ To configure Neovim follow these steps:
 - Linux: `$XDG_CONFIG_HOME/nvim`
 - Windows: `%LOCALAPPDATA%\nvim`
 
-2. Install a C compiler for neovim-treesitter. I highly recommend to install `zig` in Widows because it's the easiest option and requires no setup.
-
-In Windows:
-```cmd
-winget install zig.zig
-```
-
-3. Enable integration with system clipboard.
+2. Enable integration with system clipboard.
 
 In Ubuntu:
 ```bash
@@ -29,6 +23,6 @@ sudo apt install xclip
 sudo apt install wl-clipboard
 ```
 
-4. Start Neovim and wait until the treesitters gets compiled. Restart Neovim again if needed.
+3. Start Neovim. The plugins get installed automatically on the first start.
 
 That's all!
