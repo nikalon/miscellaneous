@@ -9,7 +9,7 @@ This directory contains custom configuration files for Neovim. It's based on [ki
 To configure Neovim follow these steps:
 
 1. Copy init.lua into the runtime path
-- Linux: `$XDG_CONFIG_HOME/nvim`
+- Linux: `$XDG_CONFIG_HOME/nvim` or `~/.config/nvim`
 - Windows: `%LOCALAPPDATA%\nvim`
 
 2. Enable integration with system clipboard.
