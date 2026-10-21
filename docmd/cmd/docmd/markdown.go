@@ -194,6 +194,10 @@ const inlineSpecial = "\\`*_[]<>"
 func escape(s, special string) string {
 	var b strings.Builder
 	for _, r := range s {
+		if r == docx.Picture {
+			b.WriteString("*[picture]*")
+			continue
+		}
 		if strings.ContainsRune(special, r) {
 			b.WriteByte('\\')
 		}

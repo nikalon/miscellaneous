@@ -27,7 +27,7 @@ type Block interface{ block() }
 // Paragraph is a paragraph's text with its structural role resolved from
 // styles and numbering definitions.
 type Paragraph struct {
-	Text    string // run text; line breaks are "\n"
+	Text    string // run text; line breaks are "\n", pictures are Picture
 	Heading int    // 0 for body text, 1..9 for a heading level
 	List    *List  // nil unless the paragraph is a list item
 }
@@ -48,6 +48,10 @@ type Table struct {
 type Cell struct {
 	Blocks []Block
 }
+
+// Picture stands for a picture (or other drawing) in Paragraph.Text: U+FFFC,
+// the Unicode object replacement character.
+const Picture = '\uFFFC'
 
 func (*Paragraph) block() {}
 func (*Table) block()     {}

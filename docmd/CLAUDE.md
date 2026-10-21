@@ -18,7 +18,7 @@ go test ./cmd/docmd -update                   # regenerate want.md goldens; revi
 - `docx/` — **reusable library** (meant to be imported by other projects): parses a .docx into a small semantic model (`Document` → `Paragraph`/`Table` blocks). It resolves Word's machinery (style IDs, `basedOn` chains, numbering definitions) into meaning — `Heading` level, `List{Level, Ordered}` — so consumers never see OOXML. Keep it free of Markdown concerns.
   - Parts are located via OPC relationships (`_rels/.rels` → main document → its `.rels` for styles/numbering), not hardcoded paths.
   - `document.xml` is streamed with `xml.Decoder` (order of paragraphs/tables matters); property elements (`pPr`, `tcPr`) are decoded with `DecodeElement`. Elements are matched by local name only (Transitional and Strict namespaces).
-  - `body.go`'s `transparent` map lists wrapper elements whose children are processed as if unwrapped; **every other unhandled element is skipped entirely** (deletions, field instructions, drawings, text boxes). New content support usually means adding a case there.
+  - `body.go`'s `transparent` map lists wrapper elements whose children are processed as if unwrapped; **every other unhandled element is skipped entirely** (deletions, field instructions, text boxes). New content support usually means adding a case there.
   - Headings: `outlineLvl` wins, else style name `heading N` (names stay English in localized docs; style IDs don't).
 - `cmd/docmd/` — CLI plus the tool-specific Markdown writer (`markdown.go`, unexported, not meant for reuse). Formatting options (`-indent`, `-align-tables`) live in `options`; their defaults exist only in the flag definitions in `main.go`.
 
@@ -31,3 +31,7 @@ End-to-end tests only, by design — internals are expected to change, so don't 
 - `want.md` expected output, or `want.err` with a substring of the expected stderr for failure cases
 
 LibreOffice cases are generated: edit `input.fodt` (flat ODT source) and run `testdata/libreoffice/convert.sh [case...]` (uses `soffice`, or the Flatpak if absent), then `-update` and review the Markdown diff. Before trusting new output, check the generated `word/document.xml`/`styles.xml` — LibreOffice silently drops style attributes it doesn't like (every `.fodt` needs the `office:master-styles` block for parent/list/outline style attributes to survive), so a "wrong" output may be a faithful conversion of a wrong input.
+
+## Writing
+
+Markdown files (README, docs): no hard wrapping at a column limit — one line per paragraph or list item.

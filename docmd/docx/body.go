@@ -11,7 +11,7 @@ import (
 // transparent elements wrap content without changing its meaning, so their
 // children are treated as children of the enclosing element. Any other
 // element that isn't explicitly handled is skipped with all its content:
-// deletions, field instructions, drawings, text boxes, properties, etc.
+// deletions, field instructions, text boxes, properties, etc.
 var transparent = map[string]bool{
 	"r":          true,
 	"hyperlink":  true,
@@ -118,6 +118,8 @@ func (p *parser) paragraph() (*Paragraph, error) {
 			}
 		case "noBreakHyphen":
 			text.WriteByte('-')
+		case "drawing":
+			text.WriteRune(Picture)
 		}
 		return p.d.Skip()
 	})
