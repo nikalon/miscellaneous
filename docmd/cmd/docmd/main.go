@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"docmd/docx"
@@ -39,7 +40,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 		if fs.NArg() == 0 {
 			break
 		}
-		inputs = append(inputs, fs.Arg(0))
+		inputs = append(inputs, expand(fs.Arg(0))...)
 		args = fs.Args()[1:]
 	}
 	switch {
@@ -62,6 +63,17 @@ func run(args []string, stdout, stderr io.Writer) int {
 		}
 	}
 	return status
+}
+
+// expand does the wildcard expansion that Windows shells, unlike Unix ones,
+// leave to the program. A pattern matching nothing is kept as is.
+func expand(arg string) []string {
+	if runtime.GOOS == "windows" && strings.ContainsAny(arg, "*?") {
+		if matches, _ := filepath.Glob(arg); len(matches) > 0 {
+			return matches
+		}
+	}
+	return []string{arg}
 }
 
 func convert(in, out string, opt options, stdout io.Writer) error {
